@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8. Representational Capacity II: Topology · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch08">
+<main>
+  <p class="kicker"><span lang="en">Part III · Chapter 8</span><span lang="ja">第III部・第8章</span></p>
+  <h1><span lang="en">Representational Capacity II: Topology</span><span lang="ja">表現力 II：トポロジー</span></h1>
+  <p class="question"><span lang="en">How do depth, width, and connectivity determine what can be represented?</span><span lang="ja">深さ・幅・接続は、表現できるものをどう決めるか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">You have a budget of 16 ReLU units. Spend them all on one wide layer, or stack 8 layers of 2? One of these choices can draw a zigzag with 256 teeth. The other manages 17 pieces at most.</p>
+    <p lang="ja">ReLU ユニット16個の予算があります。全部を広い層1つに使うか、2個ずつの層を8段積むか。一方は歯が256本のジグザグを描けますが、もう一方はせいぜい17本の線分しか描けません。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>Count parameters and linear pieces, and see that they are not the same thing.</li>
+    <li>Understand why depth can be exponentially more efficient than width.</li>
+    <li>Meet VC dimension and Rademacher complexity as games.</li>
+    <li>Split error into approximation and estimation parts.</li>
+    <li>Read architectures (conv, recurrence, attention) as built-in symmetries.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>パラメータ数と線分の数を数え、両者が同じものではないことを知る。</li>
+    <li>深さが幅より指数的に効率的になりうる理由を理解する。</li>
+    <li>VC次元と Rademacher 複雑度に、ゲームとして出会う。</li>
+    <li>誤差を近似誤差と推定誤差に分ける。</li>
+    <li>アーキテクチャ（畳み込み、再帰、注意機構）を、組み込まれた対称性として読む。</li>
+  </ul>
+
+  <!-- 8.1 -->
+  <h2><span lang="en">8.1 Counting parameters and regions</span><span lang="ja">8.1 パラメータと領域を数える</span></h2>
+  <p lang="en">The obvious measure of capacity is the number of parameters. For ReLU networks there is a more direct one: the number of linear pieces (Chapter 7). How do the two compare as we vary depth and width?</p>
+  <p lang="ja">容量の分かりやすい尺度はパラメータの数です。ReLU ネットワークには、もっと直接的な尺度があります。線分（線形な領域）の数です（第7章）。深さと幅を変えたとき、この2つはどう比べられるでしょうか。</p>
+
+  <figure class="widget" data-widget="depth-width-table">
+    <figcaption>
+      <span lang="en">Linear pieces of random 1-input ReLU networks, averaged over several draws.</span>
+      <span lang="ja">入力1つのランダムな ReLU ネットワークの線分の数（何回か引き直した平均）。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 8.2 -->
+  <h2><span lang="en">8.2 Why depth wins: folding</span><span lang="ja">8.2 深さが勝つ理由：折りたたみ</span></h2>
+  <p lang="en">Fold a strip of paper in half, then fold it again. Each fold doubles the number of creases. A layer that maps $[0,1]$ onto itself twice (a “tent”) does the same to a function. Composing it $L$ times gives $2^L$ pieces.</p>
+  <p lang="ja">紙の帯を半分に折り、もう一度折ります。折るたびに折り目の数は倍になります。$[0,1]$ を自分自身に2回重ねて写す層（「テント」）は、関数に同じことをします。これを $L$ 回合成すると $2^L$ 本の線分ができます。</p>
+
+  <details class="predict">
+    <summary><span lang="en">How many pieces at L = 7? How many units does the deep network use?</span><span lang="ja">L = 7 のとき線分は何本でしょうか。深いネットワークが使うユニットはいくつでしょうか？</span></summary>
+    <p lang="en">128 pieces from 14 units. A one-hidden-layer network would need at least 127 units.</p>
+    <p lang="ja">14ユニットで128本です。隠れ層1つのネットワークなら、少なくとも127ユニットが必要です。</p>
+  </details>
+
+  <figure class="widget" data-widget="sawtooth">
+    <figcaption>
+      <span lang="en">Left: one tent layer, built from 2 ReLUs. Right: the tent composed with itself L times.</span>
+      <span lang="ja">左：2つの ReLU で作ったテントの層1つ。右：テントを自分自身と L 回合成したもの。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en"><strong>Depth separation</strong> (Telgarsky, informal): there are functions computable by a ReLU network with $O(L)$ layers and $O(1)$ width, such that any network with $O(L^{1/3})$ layers needs about $2^{L^{1/3}}$ units to approximate them. Depth buys <em>exponential</em> savings for compositional functions.</p>
+    <p lang="ja"><strong>深さによる分離</strong>（Telgarsky、非形式的）：$O(L)$ 層・幅 $O(1)$ の ReLU ネットワークで計算できるのに、層が $O(L^{1/3})$ のネットワークで近似しようとするとおよそ $2^{L^{1/3}}$ 個のユニットが必要になる関数が存在します。合成的な関数に対しては、深さが<em>指数的な</em>節約をもたらします。</p>
+  </div>
+
+  <!-- 8.3 -->
+  <h2><span lang="en">8.3 Formal capacity: shattering and random labels</span><span lang="ja">8.3 形式的な容量：粉砕とランダムなラベル</span></h2>
+  <p lang="en">Counting pieces works for ReLU networks. A more general question is how many <em>different labelings</em> the family can produce. Place $n$ points, then let an adversary colour them any way. If the family can always draw a separating boundary, it <strong>shatters</strong> those points.</p>
+  <p lang="ja">線分を数える方法は ReLU ネットワークには使えます。より一般的な問いは、その関数族が<em>何通りのラベル付け</em>を作り出せるかです。$n$ 個の点を置き、相手に好きなように色を塗らせます。関数族がいつでも分ける境界を引けるなら、その点の組を<strong>粉砕（shatter）</strong>するといいます。</p>
+
+  <figure class="widget" data-widget="shattering">
+    <figcaption>
+      <span lang="en">The family is “all straight lines”. Try to find 4 points that lines can shatter.</span>
+      <span lang="ja">関数族は「すべての直線」です。直線で粉砕できる4点を探してみましょう。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">The <strong>VC dimension</strong> of a family is the largest $n$ for which <em>some</em> $n$ points can be shattered. Lines in $\mathbb R^2$ have VC dimension 3. The <strong>Rademacher complexity</strong> asks a softer version: on average, how well can the family correlate with purely random $\pm1$ labels?</p>
+    <p lang="ja">関数族の <strong>VC 次元</strong>とは、<em>ある</em> $n$ 点の組を粉砕できるような最大の $n$ です。$\mathbb R^2$ の直線の VC 次元は3です。<strong>Rademacher 複雑度</strong>はそのやわらかい版で、関数族が純粋にランダムな $\pm1$ のラベルと平均してどれだけ相関できるかを問います。</p>
+    $$\mathfrak R_n(\mathcal H)=\mathbb E_{\epsilon}\Big[\sup_{f\in\mathcal H}\frac1n\sum_{i=1}^n\epsilon_i f(x_i)\Big],\qquad\epsilon_i=\pm1\text{ at random}.$$
+  </div>
+
+  <!-- 8.4 -->
+  <h2><span lang="en">8.4 Approximation vs. estimation error</span><span lang="ja">8.4 近似誤差と推定誤差</span></h2>
+  <p lang="en">More capacity is not free. A richer family gets closer to the truth (less <strong>approximation error</strong>), but with finite data it is also more easily fooled by noise (more <strong>estimation error</strong>).</p>
+  <p lang="ja">容量を増やすのはただではありません。豊かな関数族ほど真実に近づけます（<strong>近似誤差</strong>が減る）。しかし有限のデータでは、ノイズにもだまされやすくなります（<strong>推定誤差</strong>が増える）。</p>
+
+  <details class="predict">
+    <summary><span lang="en">As the degree goes from 0 to 15, what happens to training error? To test error?</span><span lang="ja">次数を0から15に上げていくと、訓練誤差はどうなるでしょうか。テスト誤差は？</span></summary>
+    <p lang="en">Training error only goes down. Test error goes down, bottoms out, then climbs: the U shape.</p>
+    <p lang="ja">訓練誤差は下がる一方です。テスト誤差は下がって底を打ち、それから上がります。U 字型です。</p>
+  </details>
+
+  <figure class="widget" data-widget="bias-variance-poly">
+    <figcaption>
+      <span lang="en">Polynomials of growing degree fitted to the 40-point noisy-curve data. Test error is measured on 300 new points.</span>
+      <span lang="ja">40点のノイズのある曲線のデータに、次数を上げながら多項式を当てはめます。テスト誤差は新しい300点で測ります。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$\underbrace{R(\hat f)-R^\star}_{\text{excess risk}}=\underbrace{\Big(\inf_{f\in\mathcal H}R(f)-R^\star\Big)}_{\text{approximation (Part III)}}+\underbrace{\Big(R(\hat f)-\inf_{f\in\mathcal H}R(f)\Big)}_{\text{estimation (Ch. 4, 12)}}.$$
+    <p lang="en">For squared error this is the classical <strong>bias–variance</strong> trade-off. Part IV adds a third term, optimization error.</p>
+    <p lang="ja">二乗誤差の場合、これは古典的な<strong>バイアス–バリアンス</strong>のトレードオフです。第IV部では、3つ目の項である最適化誤差が加わります。</p>
+  </div>
+
+  <!-- 8.5 -->
+  <h2><span lang="en">8.5 Architectural priors are symmetries</span><span lang="ja">8.5 アーキテクチャの事前知識は対称性</span></h2>
+  <p lang="en">The cheapest way to cut estimation error without hurting approximation is to remove only the flexibility the problem doesn't need. That is what Chapter 5's symmetries tell us, and each famous architecture builds one in.</p>
+  <p lang="ja">近似を損なわずに推定誤差を減らす最も安い方法は、問題が必要としない柔軟さだけを取り除くことです。それを教えてくれるのが第5章の対称性であり、有名なアーキテクチャはどれも、その1つを組み込んでいます。</p>
+
+  <figure class="widget" data-widget="conv-vs-dense">
+    <figcaption>
+      <span lang="en">A 32-sample signal through a convolution and through a random dense layer.</span>
+      <span lang="ja">32サンプルの信号を、畳み込みとランダムな全結合層にそれぞれ通します。</span>
+    </figcaption>
+  </figure>
+
+  <table class="w-table" lang="en">
+    <tr><th>architecture</th><th>built-in assumption</th><th>symmetry</th></tr>
+    <tr><td>convolution</td><td>the same local pattern can appear anywhere</td><td>translation equivariance</td></tr>
+    <tr><td>recurrence</td><td>the same update rule at every time step</td><td>time-shift equivariance</td></tr>
+    <tr><td>attention / sets</td><td>the order of items doesn't matter (by itself)</td><td>permutation equivariance</td></tr>
+    <tr><td>graph networks</td><td>only neighbours interact</td><td>graph relabelling</td></tr>
+  </table>
+  <table class="w-table" lang="ja">
+    <tr><th>アーキテクチャ</th><th>組み込まれた仮定</th><th>対称性</th></tr>
+    <tr><td>畳み込み</td><td>同じ局所パターンがどこにでも現れうる</td><td>平行移動に対する同変性</td></tr>
+    <tr><td>再帰</td><td>どの時刻でも同じ更新規則を使う</td><td>時間のずれに対する同変性</td></tr>
+    <tr><td>注意機構・集合</td><td>要素の順番は（それ自体では）関係ない</td><td>並べ替えに対する同変性</td></tr>
+    <tr><td>グラフネットワーク</td><td>隣どうしだけが相互作用する</td><td>グラフのラベルの付け替え</td></tr>
+  </table>
+
+  <!-- 8.6 -->
+  <h2><span lang="en">8.6 An empirical capacity check: random labels</span><span lang="ja">8.6 容量の経験的なチェック：ランダムなラベル</span></h2>
+  <p lang="en">Rademacher complexity asks how well a family can fit pure noise, and we can simply try it. Take the 60 rain days, replace every label with a coin flip, and train a small network (2 hidden layers of 128 ReLUs) on both versions. The curves below were precomputed with <code>tools/generate_data.py</code>.</p>
+  <p lang="ja">Rademacher 複雑度が問うのは、関数族が純粋なノイズにどれだけ当てはまれるかです。これは実際に試してみることができます。60日分の雨のデータのラベルをすべてコイン投げに置き換え、元のデータと両方で小さなネットワーク（128個の ReLU の隠れ層2つ）を学習させます。下の曲線は <code>tools/generate_data.py</code> で事前に計算したものです。</p>
+
+  <figure class="widget" data-widget="random-labels">
+    <figcaption>
+      <span lang="en">Training and test loss over training, for real and random labels. Press Replay to animate.</span>
+      <span lang="ja">本物のラベルとランダムなラベルについての、学習中の訓練損失とテスト損失。再生を押すとアニメーションします。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box misconception">
+    <p lang="en">“If a network fits the training data, it must have found the pattern.” The random-label run fits most of a dataset that <em>has</em> no pattern. Training fit tells you about capacity, not about truth. Only held-out data can tell them apart (Chapter 12).</p>
+    <p lang="ja">「ネットワークが訓練データに当てはまったなら、パターンを見つけたに違いない」というのは誤りです。ランダムなラベルの実験では、パターンが<em>まったくない</em>データセットのほとんどに当てはまっています。訓練データへの当てはまりが教えてくれるのは容量であって、真実ではありません。この2つを見分けられるのは、学習に使わなかったデータだけです（第12章）。</p>
+  </div>
+
+  <div class="box takeaway">
+    <p lang="en">Topology decides <em>which</em> functions are cheap to represent: depth for compositional ones, built-in symmetries for structured ones. Capacity beyond what the problem needs turns into estimation error.</p>
+    <p lang="ja">トポロジーは、<em>どの</em>関数が安く表現できるかを決める。合成的な関数には深さが、構造を持つ関数には組み込まれた対称性が効く。問題が必要とする以上の容量は、推定誤差に変わる。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">Why can't one hidden layer of 10 ReLU units represent the L = 7 sawtooth?</span><span lang="ja">10個の ReLU ユニットからなる隠れ層1つで、L = 7 ののこぎり波を表現できないのはなぜでしょうか？</span></summary>
+    <p lang="en">With 1 input, each unit contributes at most one bend, so 10 units give at most 11 pieces. The sawtooth has 128.</p>
+    <p lang="ja">入力が1つなら、各ユニットが加えられる曲がりは最大1つなので、10ユニットでは最大11本の線分しか作れません。のこぎり波には128本あります。</p>
+  </details>
+  <details class="check">
+    <summary><span lang="en">Why does a convolutional layer generalize better than a dense one on images, even though the dense one can represent everything the conv can?</span><span lang="ja">全結合層は畳み込みが表現できるものをすべて表現できるのに、画像では畳み込み層のほうがよく汎化するのはなぜでしょうか？</span></summary>
+    <p lang="en">It removes flexibility the task doesn't need, so approximation error barely changes while estimation error drops sharply: far fewer parameters, and each one is trained by every position in every image.</p>
+    <p lang="ja">課題が必要としない柔軟さを取り除いているからです。近似誤差はほとんど変わらないまま、推定誤差が大きく下がります。パラメータがはるかに少なく、しかもその1つ1つが、すべての画像のすべての位置で学習されるからです。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">Part III asked whether a good function <em>exists</em> in our family. It usually does. But existing is not the same as being found. How do we actually find it? → <a href="ch09-search.html">Chapter 9</a></p>
+    <p lang="ja">第III部では、よい関数が関数族の中に<em>存在する</em>かを問いました。たいていは存在します。しかし、存在することと見つけられることは別です。実際には、どうやって見つければよいのでしょうか。→ <a href="ch09-search.html">第9章</a></p>
+  </div>
+</main>
+</body>
+</html>

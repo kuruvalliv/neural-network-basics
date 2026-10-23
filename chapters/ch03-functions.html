@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3. Functions as Objects · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch03">
+<main>
+  <p class="kicker"><span lang="en">Part II · Chapter 3</span><span lang="ja">第II部・第3章</span></p>
+  <h1><span lang="en">Functions as Objects</span><span lang="ja">対象としての関数</span></h1>
+  <p class="question"><span lang="en">What does it mean to treat a function as a thing we can search over?</span><span lang="ja">関数を「探索できるもの」として扱うとはどういうことか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">Chapter 2 ended with: <em>find the $q$ with the lowest loss</em>. Finding a <em>number</em> with the lowest value is easy to picture: slide along a line. But how do you slide along <em>curves</em>? Can choosing a whole curve be as simple as choosing a point on a map?</p>
+    <p lang="ja">第2章は「損失が最小の $q$ を見つけよ」で終わりました。値が最小の<em>数</em>を見つけるのは想像しやすく、数直線の上を滑っていけばよいだけです。では、<em>曲線</em>の上を滑るにはどうすればよいのでしょうか。曲線を1本まるごと選ぶことを、地図の上で1点を選ぶのと同じくらい簡単にできるでしょうか。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>See a function as one complete object (a list of input–output pairs), not as a formula.</li>
+    <li>Recognize that a distribution is a function, and a conditional distribution is a function that returns functions.</li>
+    <li>Use parameters as coordinates that turn “pick a function” into “pick a point”.</li>
+    <li>Recognize functionals (entropy, KL, loss) as machines from functions to numbers.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>関数を、式ではなく1つの完全な対象（入力と出力の組の一覧）として見る。</li>
+    <li>分布は関数であり、条件付き分布は「関数を返す関数」であると理解する。</li>
+    <li>パラメータを座標として使い、「関数を選ぶ」ことを「点を選ぶ」ことに変える。</li>
+    <li>汎関数（エントロピー、KL、損失）を、関数から数への機械として理解する。</li>
+  </ul>
+
+  <!-- 3.1 -->
+  <h2><span lang="en">3.1 A function is its whole table</span><span lang="ja">3.1 関数とは、その表全体のこと</span></h2>
+  <p lang="en">We usually meet functions as formulas, like $\sigma(12h-7.2)$. A formula is only a <em>recipe</em>, though. The function itself is the full pairing of every input with its output, and a table, a set of arrows, and a graph are three ways to draw it.</p>
+  <p lang="ja">関数にはふつう、$\sigma(12h-7.2)$ のような式として出会います。しかし式は<em>レシピ</em>にすぎません。関数そのものは、すべての入力とその出力の対応全体です。表・矢印・グラフは、それを描く3つの方法です。</p>
+
+  <figure class="widget" data-widget="function-views">
+    <figcaption>
+      <span lang="en">The same function drawn three ways. Switch to the second function: a distribution is a function too.</span>
+      <span lang="ja">同じ関数の3つの描き方。2つ目の関数に切り替えてみましょう。分布も関数です。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">A <strong>function</strong> $f:X\to Y$ assigns exactly one output $f(x)\in Y$ to every input $x\in X$. A distribution $q$ over outcomes $\mathcal Y$ is a function $q:\mathcal Y\to[0,\infty)$ whose outputs sum (or integrate) to 1.</p>
+    <p lang="ja"><strong>関数</strong> $f:X\to Y$ は、すべての入力 $x\in X$ にちょうど1つの出力 $f(x)\in Y$ を割り当てます。結果の集合 $\mathcal Y$ の上の分布 $q$ は、出力の合計（または積分）が1になる関数 $q:\mathcal Y\to[0,\infty)$ です。</p>
+  </div>
+
+  <!-- 3.2 -->
+  <h2><span lang="en">3.2 Functions that return functions</span><span lang="ja">3.2 関数を返す関数</span></h2>
+  <p lang="en">In Chapter 1 we met $p(y\mid h)$: for each humidity, a distribution over weather. Read it as a machine. Put in a number $h$, and out comes <em>a function</em> of $y$. This is the central object of the whole book.</p>
+  <p lang="ja">第1章で $p(y\mid h)$ に出会いました。湿度ごとの、天気についての分布です。これを機械として読んでみましょう。数 $h$ を入れると、$y$ の<em>関数</em>が出てきます。これがこの本全体の中心となる対象です。</p>
+
+  <details class="predict">
+    <summary><span lang="en">In the noisy-curve example, what changes about the output distribution as x moves: its location, its width, or both?</span><span lang="ja">ノイズのある曲線の例で、x を動かすと出力の分布の何が変わるでしょうか。位置、幅、それとも両方？</span></summary>
+    <p lang="en">Only its location. The center follows $\sin x$, while the width stays $\sigma=0.3$ everywhere. Real data often has a width that changes too. A good model must then output both numbers.</p>
+    <p lang="ja">位置だけです。中心は $\sin x$ に沿って動き、幅はどこでも $\sigma=0.3$ のままです。現実のデータでは幅も変わることがよくあります。その場合、よいモデルは両方の数を出力しなければなりません。</p>
+  </details>
+
+  <figure class="widget" data-widget="conditional-slices">
+    <figcaption>
+      <span lang="en">Left: data and the slice at the chosen input. Right: the function of $y$ that comes out.</span>
+      <span lang="ja">左：データと、選んだ入力での断面。右：出てくる $y$ の関数。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$x\;\longmapsto\;p(\cdot\mid x)\qquad\text{type: } X\to(\mathcal Y\to[0,\infty)).$$
+    <p lang="en">A conditional distribution is a function whose <em>outputs are distributions</em>.</p>
+    <p lang="ja">条件付き分布とは、<em>出力が分布である</em>関数のことです。</p>
+  </div>
+
+  <!-- 3.3 -->
+  <h2><span lang="en">3.3 Parameters turn functions into points</span><span lang="ja">3.3 パラメータは関数を点に変える</span></h2>
+  <p lang="en">The space of <em>all</em> functions is far too big to search. So we fix a recipe with a few blanks, such as $f(x)=a\sin x+b$. Filling in the blanks picks one function. The blanks $\theta=(a,b)$ are <strong>parameters</strong>, and every function in the family now has an <em>address</em>: a point in the $(a,b)$ plane.</p>
+  <p lang="ja"><em>すべての</em>関数の空間は大きすぎて探索できません。そこで、$f(x)=a\sin x+b$ のように空欄をいくつか持つレシピを1つ決めておきます。空欄を埋めると関数が1つ選ばれます。空欄 $\theta=(a,b)$ が<strong>パラメータ</strong>で、関数族の中のどの関数にも、$(a,b)$ 平面上の1点という<em>住所</em>ができます。</p>
+
+  <figure class="widget" data-widget="param-space">
+    <figcaption>
+      <span lang="en">Left: parameter space. Right: function space. Moving the point moves the curve. Pin a few to compare neighbours.</span>
+      <span lang="ja">左：パラメータ空間。右：関数空間。点を動かすと曲線が動きます。いくつかピン留めして、近くの点どうしを比べてみましょう。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">A <strong>parametric family</strong> is a map $\theta\mapsto f_\theta$ from a parameter space $\Theta\subseteq\mathbb R^d$ into a function space. A neural network is a parametric family with a very large $d$.</p>
+    <p lang="ja"><strong>パラメトリックな関数族</strong>とは、パラメータ空間 $\Theta\subseteq\mathbb R^d$ から関数空間への写像 $\theta\mapsto f_\theta$ のことです。ニューラルネットワークは、$d$ がとても大きいパラメトリックな関数族です。</p>
+  </div>
+
+  <div class="box misconception">
+    <p lang="en">“Each parameter vector is a different function.” Not necessarily. Different addresses can point to the same house.</p>
+    <p lang="ja">「パラメータのベクトルが違えば、関数も違う」とは限りません。違う住所が同じ家を指すこともあります。</p>
+  </div>
+
+  <figure class="widget" data-widget="same-function">
+    <figcaption>
+      <span lang="en">The model $f(x)=a\,b\,x$ only depends on the product $ab$. A whole curve of parameters collapses onto one function.</span>
+      <span lang="ja">モデル $f(x)=a\,b\,x$ は積 $ab$ にしかよりません。パラメータの曲線1本分が、1つの関数につぶれます。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 3.4 -->
+  <h2><span lang="en">3.4 Functionals: scoring a whole function</span><span lang="ja">3.4 汎関数：関数まるごとを採点する</span></h2>
+  <p lang="en">To search, we need to score each candidate. The score has to look at the <em>entire</em> function, not just one value. A map from functions to numbers is called a <strong>functional</strong>. You already know several: mean, entropy, KL, and the average log-loss.</p>
+  <p lang="ja">探索するには、候補それぞれを採点する必要があります。その採点では、1つの値だけでなく関数<em>全体</em>を見なければなりません。関数から数への写像を<strong>汎関数</strong>と呼びます。すでにいくつか知っているはずです。平均、エントロピー、KL、そして平均対数損失です。</p>
+
+  <figure class="widget" data-widget="functional-machine">
+    <figcaption>
+      <span lang="en">One curve in, three numbers out. Each meter is a different functional.</span>
+      <span lang="ja">曲線を1本入れると、数が3つ出てきます。メーターはそれぞれ別の汎関数です。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$\mathcal L:\;q\;\longmapsto\;\frac1n\sum_{i=1}^n-\log q(y_i\mid x_i)\in\mathbb R.$$
+    <p lang="en">Combined with a parametrization, the functional becomes an ordinary function of $\theta$: $\;L(\theta)=\mathcal L(q_\theta)$. <em>That</em> is something we can minimize.</p>
+    <p lang="ja">パラメータ化と組み合わせると、この汎関数は $\theta$ のふつうの関数になります：$\;L(\theta)=\mathcal L(q_\theta)$。<em>これなら</em>最小化できます。</p>
+  </div>
+
+  <div class="box takeaway">
+    <p lang="en">Parameters give every function in a family an address. A functional gives every function a score. Together they turn “find the best function” into “find the lowest point on a map”.</p>
+    <p lang="ja">パラメータは関数族のすべての関数に住所を与え、汎関数はすべての関数に点数を与える。この2つを合わせると、「最良の関数を見つける」問題は「地図上で最も低い点を見つける」問題になる。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">What is the type of $x\mapsto q(\cdot\mid x)$? What is the type of KL?</span><span lang="ja">$x\mapsto q(\cdot\mid x)$ の型は何でしょうか。KL の型は？</span></summary>
+    <p lang="en">The first takes an input and returns a distribution (a function). KL takes <em>two</em> distributions and returns a number, so it is a functional.</p>
+    <p lang="ja">前者は入力を受け取り、分布（つまり関数）を返します。KL は<em>2つの</em>分布を受け取って数を返すので、汎関数です。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">We now have functions-returning-functions, parameters, and functionals. A neural network combines all three, and it is easy to lose track of which level is which. What exactly does the network output? → <a href="ch04-meta-level.html">Chapter 4</a></p>
+    <p lang="ja">これで「関数を返す関数」「パラメータ」「汎関数」がそろいました。ニューラルネットワークはこの3つすべてを組み合わせたもので、どれがどのレベルの話なのかを見失いがちです。ネットワークは正確には何を出力しているのでしょうか。→ <a href="ch04-meta-level.html">第4章</a></p>
+  </div>
+</main>
+</body>
+</html>

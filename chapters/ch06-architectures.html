@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6. Building General Architectures · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch06">
+<main>
+  <p class="kicker"><span lang="en">Part III · Chapter 6</span><span lang="ja">第III部・第6章</span></p>
+  <h1><span lang="en">Building General Architectures: The Foundational Idea</span><span lang="ja">汎用アーキテクチャの構築：基本となる考え方</span></h1>
+  <p class="question"><span lang="en">How do we design a function family that can represent almost anything?</span><span lang="ja">ほぼ何でも表現できる関数族をどう設計するか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">You are given a box of identical bell-shaped bumps. You may stretch each one vertically, but they are glued in place along the $x$-axis. Can you build $\sin x$ out of them? What if you were allowed to <em>move</em> them?</p>
+    <p lang="ja">同じ形の釣鐘型の「こぶ」が箱いっぱいにあります。こぶは1つずつ縦に伸ばせますが、$x$ 軸の上の位置は接着されていて動かせません。これで $\sin x$ を組み立てられるでしょうか。もしこぶを<em>動かせる</em>としたら、どうでしょうか。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>Understand basis expansions and their limit: the features are fixed in advance.</li>
+    <li>See the key idea of neural networks: learn the features as well as the weights.</li>
+    <li>Picture a layer $\sigma(Wx+b)$ as “move space, then bend it”.</li>
+    <li>State what universal approximation guarantees, and what it doesn't.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>基底展開と、その限界（特徴があらかじめ固定されていること）を理解する。</li>
+    <li>ニューラルネットワークの鍵となる考え方（重みだけでなく特徴も学習する）をつかむ。</li>
+    <li>層 $\sigma(Wx+b)$ を「空間を動かしてから曲げる」操作としてイメージする。</li>
+    <li>普遍近似が何を保証し、何を保証しないかを述べられるようになる。</li>
+  </ul>
+
+  <!-- 6.1 -->
+  <h2><span lang="en">6.1 Fixed basis expansions</span><span lang="ja">6.1 固定基底による展開</span></h2>
+  <p lang="en">The oldest recipe for a flexible function is a weighted sum of ready-made shapes, $\phi_k$, called <strong>basis functions</strong> or <strong>features</strong>. The shapes are fixed, so the model is <em>linear in the weights</em>, and fitting reduces to least squares, which has a single exact answer.</p>
+  <p lang="ja">柔軟な関数を作る最も古いレシピは、既製の形 $\phi_k$ の重み付き和です。この形を<strong>基底関数</strong>または<strong>特徴</strong>と呼びます。形が固定なので、モデルは<em>重みについて線形</em>になり、当てはめは最小二乗法に帰着します。答えはただ1つに正確に決まります。</p>
+
+  <details class="predict">
+    <summary><span lang="en">With 4 bumps of width 0.3, will the fit look like a sine wave?</span><span lang="ja">幅0.3のこぶを4つ使うと、当てはめた結果は正弦波のように見えるでしょうか？</span></summary>
+    <p lang="en">No. You get four separate hills with flat gaps between them. The bumps cannot reach the parts of the curve they don't cover. Widen them or add more, and you will see the fit improve.</p>
+    <p lang="ja">見えません。間に平らなすきまのある、4つの別々の丘になります。こぶは自分が覆っていない部分には届きません。幅を広げるか数を増やすと、当てはまりがよくなるのが分かります。</p>
+  </details>
+
+  <figure class="widget" data-widget="rbf-fixed">
+    <figcaption>
+      <span lang="en">Gaussian bumps $\phi_k(x)=e^{-(x-c_k)^2/2w^2}$ at evenly spaced centres $c_k$. Only their heights are learned.</span>
+      <span lang="ja">等間隔の中心 $c_k$ に置いたガウス型のこぶ $\phi_k(x)=e^{-(x-c_k)^2/2w^2}$。学習するのは高さだけです。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$f(x)=w_0+\sum_{k=1}^{K}w_k\,\phi_k(x).$$
+    <p lang="en">This form is easy to fit, but it can only be as good as the features you chose before seeing the data. In high dimensions, covering the space with fixed bumps needs exponentially many of them.</p>
+    <p lang="ja">この形は当てはめが簡単ですが、性能は、データを見る前に選んだ特徴以上にはなりません。高次元では、固定のこぶで空間を覆うのに指数的に多くのこぶが必要になります。</p>
+  </div>
+
+  <!-- 6.2 -->
+  <h2><span lang="en">6.2 The key step: learn the features too</span><span lang="ja">6.2 鍵となる一歩：特徴も学習する</span></h2>
+  <p lang="en">Now unglue the bumps. Their centres become parameters as well, so fewer bumps go further, because each can go where it is needed. You will play the learning algorithm here.</p>
+  <p lang="ja">今度はこぶの接着をはがします。中心もパラメータになるので、1つ1つのこぶが必要な場所へ移動でき、少ない数でより遠くまで届きます。ここでは、あなたが学習アルゴリズムの役を演じます。</p>
+
+  <figure class="widget" data-widget="rbf-movable">
+    <figcaption>
+      <span lang="en">Three bumps whose positions you control. The heights are refitted automatically every time you move one.</span>
+      <span lang="ja">位置を自分で動かせる3つのこぶ。1つ動かすたびに、高さは自動で当てはめ直されます。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">A <strong>neural network</strong> is a basis expansion whose basis functions have their own parameters: $\;f_\theta(x)=\sum_k w_k\,\phi(x;\,v_k)$. Learning $v_k$ is <strong>representation learning</strong>. The price is that the model is no longer linear in its parameters, so fitting becomes a search problem (Part IV).</p>
+    <p lang="ja"><strong>ニューラルネットワーク</strong>とは、基底関数そのものもパラメータを持つ基底展開です：$\;f_\theta(x)=\sum_k w_k\,\phi(x;\,v_k)$。$v_k$ を学習することを<strong>表現学習</strong>と呼びます。その代償として、モデルはもはやパラメータについて線形ではなくなり、当てはめは探索の問題になります（第IV部）。</p>
+  </div>
+
+  <!-- 6.3 -->
+  <h2><span lang="en">6.3 The layer: move space, then bend it</span><span lang="ja">6.3 層：空間を動かしてから曲げる</span></h2>
+  <p lang="en">The standard learnable feature is the <strong>layer</strong> $h=\sigma(Wx+b)$. Its two parts have simple geometric meanings. $Wx+b$ rotates, stretches, and shifts space, keeping straight lines straight. The nonlinearity $\sigma$ then bends or folds it.</p>
+  <p lang="ja">学習できる特徴の標準形が<strong>層</strong> $h=\sigma(Wx+b)$ です。2つの部分にはそれぞれ単純な幾何的な意味があります。$Wx+b$ は空間を回転・伸縮・平行移動させ、直線を直線のまま保ちます。そのあと非線形性 $\sigma$ が空間を曲げたり折ったりします。</p>
+
+  <figure class="widget" data-widget="layer-warp">
+    <figcaption>
+      <span lang="en">A 2-D grid and coloured points pushed through one layer. Press Play to watch the two stages in turn.</span>
+      <span lang="ja">2次元の格子と色付きの点を、1つの層に通します。再生を押すと、2つの段階を順に見られます。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 6.4 -->
+  <h2><span lang="en">6.4 Stacking layers</span><span lang="ja">6.4 層を積み重ねる</span></h2>
+  <p lang="en">Feed one layer's output into another: $f=f_L\circ\dots\circ f_1$. This is exactly the composition from Chapter 5, and each layer builds features out of the previous layer's features. Chapter 8 shows that stacking can be exponentially more efficient than widening.</p>
+  <p lang="ja">ある層の出力を次の層に入れます：$f=f_L\circ\dots\circ f_1$。これは第5章の合成そのもので、各層は前の層の特徴から新しい特徴を組み立てます。第8章では、積み重ねるほうが幅を広げるより指数的に効率がよい場合があることを見ます。</p>
+  $$h^{(1)}=\sigma(W_1x+b_1),\quad h^{(2)}=\sigma(W_2h^{(1)}+b_2),\quad\dots,\quad f_\theta(x)=W_Lh^{(L-1)}+b_L.$$
+
+  <!-- 6.5 -->
+  <h2><span lang="en">6.5 Universal approximation</span><span lang="ja">6.5 普遍近似</span></h2>
+  <p lang="en">How general is this family? Here is a construction you can check by eye. Each ReLU unit $\mathrm{ReLU}(x-k)$ is a “hinge” that is flat, then bends upward at $k$. Adding hinges with the right slopes traces any continuous curve as closely as you like.</p>
+  <p lang="ja">この関数族はどれほど一般的なのでしょうか。目で確かめられる構成を示します。ReLU ユニット $\mathrm{ReLU}(x-k)$ は、平らなあと $k$ で上に曲がる「ちょうつがい」です。適切な傾きのちょうつがいを足していけば、どんな連続曲線でも好きなだけ精密になぞれます。</p>
+
+  <figure class="widget" data-widget="relu-sum">
+    <figcaption>
+      <span lang="en">A one-hidden-layer ReLU network built by hand to trace $\sin x$. The knots are evenly spaced, and each $c_k$ is the change in slope at its knot.</span>
+      <span lang="ja">$\sin x$ をなぞるように手で組み立てた、隠れ層1つの ReLU ネットワーク。結び目は等間隔で、各 $c_k$ はその結び目での傾きの変化です。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en"><strong>Universal approximation theorem</strong> (informal): for any continuous $g$ on a bounded region and any tolerance $\varepsilon&gt;0$, some one-hidden-layer network with a non-polynomial activation satisfies $|f_\theta(x)-g(x)|&lt;\varepsilon$ everywhere on that region.</p>
+    <p lang="ja"><strong>普遍近似定理</strong>（非形式的）：有界な領域上の任意の連続関数 $g$ と任意の許容誤差 $\varepsilon&gt;0$ に対して、非多項式の活性化関数を使う隠れ層1つのネットワークで、その領域上のすべての点で $|f_\theta(x)-g(x)|&lt;\varepsilon$ を満たすものが存在する。</p>
+  </div>
+
+  <div class="box misconception">
+    <p lang="en">“Universal approximation means neural networks can learn anything.” It only says a good network <em>exists</em>. It does not say how many units are needed (possibly astronomically many, see Chapter 8), whether finite data pins it down (Chapter 12), or whether gradient descent will find it (Part IV).</p>
+    <p lang="ja">「普遍近似とは、ニューラルネットワークが何でも学習できるという意味だ」というのは誤りです。定理が言うのは、よいネットワークが<em>存在する</em>ということだけです。必要なユニットの数（天文学的になりうる。第8章）、有限のデータでそれが決まるか（第12章）、勾配降下法で見つかるか（第IV部）については何も言いません。</p>
+  </div>
+
+  <!-- 6.6 -->
+  <h2><span lang="en">6.6 The last layer is “just” a linear readout</span><span lang="ja">6.6 最終層は「ただの」線形の読み出し</span></h2>
+  <p lang="en">Look again at the formula in 6.4. Every layer except the last builds features, and the last layer is a plain weighted sum, exactly like 6.1. In Chapter 4's language, that sum is the <em>logit</em> (or mean, or log-scale) that names the output distribution. So a classifier is logistic regression on top of learned features.</p>
+  <p lang="ja">6.4 の式をもう一度見てください。最後以外のすべての層は特徴を組み立てており、最後の層は 6.1 とまったく同じ、ただの重み付き和です。第4章の言葉で言えば、この和が出力の分布を名指す<em>ロジット</em>（あるいは平均や対数スケール）です。つまり分類器とは、学習された特徴の上に載ったロジスティック回帰なのです。</p>
+  $$q_\theta(\text{rain}\mid x)=\sigma\Big(\underbrace{w^\top}_{\text{readout}}\;\underbrace{h^{(L-1)}(x)}_{\text{learned features}}+b\Big).$$
+
+  <div class="box takeaway">
+    <p lang="en">A neural network is a basis expansion that learns its own basis. Hidden layers build features, and the last layer reads them out linearly as the knobs of a distribution.</p>
+    <p lang="ja">ニューラルネットワークとは、自分の基底を学習する基底展開である。隠れ層が特徴を作り、最終層がそれを線形に読み出して、分布のつまみにする。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">Why is fitting a fixed-basis model easy, but fitting a neural network hard?</span><span lang="ja">固定基底のモデルの当てはめは簡単なのに、ニューラルネットワークの当てはめが難しいのはなぜでしょうか？</span></summary>
+    <p lang="en">With fixed features, the loss is a quadratic bowl in the weights, with one minimum and an exact formula for it. Once the features have parameters, the loss surface can have many valleys, plateaus, and saddles, so we must search.</p>
+    <p lang="ja">特徴が固定なら、損失は重みについての2次のお椀で、最小点は1つ、しかもそれを求める正確な式があります。特徴がパラメータを持つと、損失の地形には多くの谷・台地・鞍点ができうるので、探索しなければならなくなります。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">The bend $\sigma$ did all the interesting work in 6.3. What exactly would we lose without it, and does its shape matter? → <a href="ch07-activations.html">Chapter 7</a></p>
+    <p lang="ja">6.3 で面白い仕事をしていたのは、すべて曲げる操作 $\sigma$ でした。それがなかったら正確には何を失うのでしょうか。そして、その形は重要なのでしょうか。→ <a href="ch07-activations.html">第7章</a></p>
+  </div>
+</main>
+</body>
+</html>

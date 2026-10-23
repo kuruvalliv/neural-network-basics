@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1. Probability Distributions · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch01">
+<main>
+  <p class="kicker"><span lang="en">Part I · Chapter 1</span><span lang="ja">第I部・第1章</span></p>
+  <h1><span lang="en">Probability Distributions</span><span lang="ja">確率分布</span></h1>
+  <p class="question"><span lang="en">What is a probability distribution, precisely?</span><span lang="ja">確率分布とは、正確には何か？</span></p>
+
+  <div class="box hook">
+    <p lang="en">The forecast says <strong>“70% chance of rain.”</strong> Tomorrow it either rains or it doesn't. So what exactly was the 70% a claim <em>about</em>? And how could we ever check it?</p>
+    <p lang="ja">天気予報が<strong>「降水確率70%」</strong>と言っています。明日は雨が降るか降らないかのどちらかです。では、この70%は正確には<em>何について</em>の主張なのでしょうか。そして、どうすれば確かめられるのでしょうか。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>See outcomes, events, and random variables as concrete objects.</li>
+    <li>Understand why a density is not a probability, while an area under it is.</li>
+    <li>Slice a joint table into marginals and conditionals, and read off Bayes' rule.</li>
+    <li>Picture the mean as a balance point and the variance as spread.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>結果・事象・確率変数を、具体的なものとしてとらえる。</li>
+    <li>密度は確率ではなく、その下の面積が確率であることを理解する。</li>
+    <li>同時分布の表を切って周辺分布・条件付き分布を作り、ベイズの定理を読み取る。</li>
+    <li>平均をつり合いの点、分散を広がりとしてイメージする。</li>
+  </ul>
+
+  <!-- 1.1 -->
+  <h2><span lang="en">1.1 Everything that could happen</span><span lang="ja">1.1 起こりうることのすべて</span></h2>
+  <p lang="en">Start by listing every possible way the world could turn out. For a die, that list is the six faces. For tomorrow's weather, a crude list is {rain, no rain}. This list is the <strong>sample space</strong> $\Omega$. Any yes/no question about the outcome (“is the face even?”) picks out a subset of $\Omega$, called an <strong>event</strong>.</p>
+  <p lang="ja">まず、世界がどうなりうるかを全部書き出します。サイコロなら6つの目、明日の天気なら大まかに {雨, 晴れ} です。この一覧が<strong>標本空間</strong> $\Omega$ です。結果についての「はい/いいえ」で答えられる質問（「偶数の目か？」など）は $\Omega$ の部分集合を選び出します。これを<strong>事象</strong>と呼びます。</p>
+  <p lang="en">A probability $P$ assigns each event a number between 0 and 1. The whole space gets 1, and the numbers for non-overlapping events add up.</p>
+  <p lang="ja">確率 $P$ は、各事象に0から1の数を割り当てます。全体には1を与え、重ならない事象どうしの数は足し算になります。</p>
+
+  <!-- 1.2 -->
+  <h2><span lang="en">1.2 A random variable is a function</span><span lang="ja">1.2 確率変数は関数である</span></h2>
+  <p lang="en">Outcomes like “⚄” or “rain” are not numbers, so we cannot average them. A <strong>random variable</strong> fixes this. It is a rule that sends every outcome to a number. Despite the name, it is neither random nor a variable. It is a function, and the randomness lives in which outcome occurs.</p>
+  <p lang="ja">「⚄」や「雨」といった結果は数ではないので、平均をとることもできません。そこで<strong>確率変数</strong>を使います。確率変数は、各結果を数に送る規則です。名前に反して、確率変数はランダムでも変数でもありません。正体は関数で、ランダムなのは「どの結果が起こるか」のほうです。</p>
+
+  <details class="predict">
+    <summary><span lang="en">Pick “E = 1 if even” and roll 100 times. How tall will the grey bars be?</span><span lang="ja">「E = 偶数なら1」を選んで100回振ると、灰色の棒はどのくらいの高さになるでしょうか？</span></summary>
+    <p lang="en">Near 0.5 each. Three faces are sent to 1 and three to 0. The arrows <em>merge</em> outcomes, so the distribution of $E$ has fewer bars than the die has faces.</p>
+    <p lang="ja">どちらも0.5付近です。3つの目が1に、3つの目が0に送られます。矢印が結果を<em>まとめる</em>ので、$E$ の分布の棒の数はサイコロの目の数より少なくなります。</p>
+  </details>
+
+  <figure class="widget" data-widget="random-variable">
+    <figcaption>
+      <span lang="en">Left: the random variable drawn as arrows from outcomes to numbers. Right: the distribution it induces (blue) and what you actually observe (grey).</span>
+      <span lang="ja">左：結果から数への矢印として描いた確率変数。右：そこから決まる分布（青）と、実際に観測した頻度（灰）。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">A <strong>random variable</strong> is a function $Y:\Omega\to\mathbb R$. Its <strong>distribution</strong> says how probability is spread over the values: $P(Y=y)=P(\{\omega: Y(\omega)=y\})$.</p>
+    <p lang="ja"><strong>確率変数</strong>とは関数 $Y:\Omega\to\mathbb R$ のことです。その<strong>分布</strong>は、確率が値の上にどう配分されるかを表します：$P(Y=y)=P(\{\omega: Y(\omega)=y\})$。</p>
+  </div>
+
+  <!-- 1.3 -->
+  <h2><span lang="en">1.3 From bars to curves</span><span lang="ja">1.3 棒グラフから曲線へ</span></h2>
+  <p lang="en">With finitely many values, the distribution is a bar chart: the <strong>probability mass function</strong> (PMF) $p(y)=P(Y=y)$. But humidity, temperature, or the $y$ in $y=\sin x+\varepsilon$ can take any real value, and the chance of hitting <em>exactly</em> 0.5 is zero. So how do we draw it?</p>
+  <p lang="ja">値が有限個なら、分布は棒グラフになります。これが<strong>確率質量関数</strong>（PMF）$p(y)=P(Y=y)$ です。しかし湿度や気温、$y=\sin x+\varepsilon$ の $y$ は任意の実数値をとり、<em>ちょうど</em>0.5になる確率は0です。では、どう描けばよいでしょうか。</p>
+  <p lang="en">Chop the line into bins and draw the probability of each bin. Then add more bins.</p>
+  <p lang="ja">数直線を区間に切り、各区間の確率を棒で描きます。そのうえで区間を増やしていきます。</p>
+
+  <details class="predict">
+    <summary><span lang="en">Switch to “probability ÷ bin width” and set σ = 0.2. Can a bar be taller than 1?</span><span lang="ja">「確率 ÷ 区間の幅」に切り替えて σ = 0.2 にします。棒は1より高くなれるでしょうか？</span></summary>
+    <p lang="en">Yes, close to 2. The height is a <em>density</em>, which is probability per unit length. Only the area has to stay at most 1.</p>
+    <p lang="ja">なれます。2近くまで伸びます。高さは<em>密度</em>、つまり単位長さあたりの確率です。1以下でなければならないのは面積だけです。</p>
+  </details>
+
+  <figure class="widget" data-widget="pmf-to-pdf">
+    <figcaption>
+      <span lang="en">The same Gaussian, binned. Raw bin probabilities shrink as bins get narrower. Divided by width, they converge to a curve.</span>
+      <span lang="ja">同じガウス分布を区間に分けたもの。区間の確率そのものは、区間が細くなるほど小さくなります。幅で割ると、一本の曲線に収束します。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">A <strong>probability density function</strong> (PDF) $p(y)$ is the limit of “bin probability ÷ bin width”. Probabilities are areas:</p>
+    <p lang="ja"><strong>確率密度関数</strong>（PDF）$p(y)$ は「区間の確率 ÷ 区間の幅」の極限です。確率は面積として求めます：</p>
+    $$P(a\le Y\le b)=\int_a^b p(y)\,dy,\qquad \int_{-\infty}^{\infty}p(y)\,dy=1.$$
+  </div>
+
+  <div class="box misconception">
+    <p lang="en">“A density of 2 means a probability of 2.” No. A density value means nothing on its own. It only becomes a probability once you multiply it by a width (integrate).</p>
+    <p lang="ja">「密度が2なら確率も2」というのは誤りです。密度の値は、それ単体では意味を持ちません。幅を掛けて（積分して）はじめて確率になります。</p>
+  </div>
+
+  <!-- 1.4 -->
+  <h2><span lang="en">1.4 Accumulate: the CDF</span><span lang="ja">1.4 累積する：CDF</span></h2>
+  <p lang="en">Sweep a cut $t$ from left to right and keep a running total of the probability to its left. That running total is the <strong>cumulative distribution function</strong> $F(t)=P(Y\le t)$. It works the same for bars and for curves, which is why it is the most general description.</p>
+  <p lang="ja">切る位置 $t$ を左から右へ動かし、その左側にある確率を合計し続けます。この合計が<strong>累積分布関数</strong> $F(t)=P(Y\le t)$ です。棒グラフにも曲線にも同じように使えるので、分布の最も一般的な表し方になっています。</p>
+
+  <figure class="widget" data-widget="family-viewer">
+    <figcaption>
+      <span lang="en">Top: PMF or PDF. Bottom: CDF. Move t and watch the shaded area become the height of the dot. Each family is a fixed shape with a few knobs.</span>
+      <span lang="ja">上：PMF または PDF。下：CDF。t を動かすと、塗られた面積が点の高さになる様子を見られます。各分布族は、決まった形にいくつかのつまみが付いたものです。</span>
+    </figcaption>
+  </figure>
+
+  <p lang="en">Notice how few knobs each family has: Bernoulli 1, Gaussian 2, a 4-way categorical 3 (since the four probabilities must sum to 1). A <strong>parametric family</strong> is a template, and turning its knobs picks one distribution. Chapter 3 will treat those knobs as coordinates, and a neural network will turn out to be a machine that sets them.</p>
+  <p lang="ja">どの分布族もつまみが少ないことに注目してください。Bernoulli は1つ、ガウスは2つ、4値のカテゴリカルは3つです（4つの確率の合計は1でなければならないため）。<strong>パラメトリックな分布族</strong>はテンプレートで、つまみを回すと分布が1つ選ばれます。第3章ではこのつまみを座標として扱います。そしてニューラルネットワークは、つまみを設定する機械だということが分かってきます。</p>
+
+  <!-- 1.5 -->
+  <h2><span lang="en">1.5 Two variables: joint, marginal, conditional</span><span lang="ja">1.5 2つの変数：同時・周辺・条件付き</span></h2>
+  <p lang="en">Now the running example. Each day has a humidity $h$ and a weather outcome $y$. The <strong>joint distribution</strong> $p(h,y)$ gives a probability to every <em>pair</em>. Below, humidity is grouped into five ranges.</p>
+  <p lang="ja">ここで例題に戻ります。毎日、湿度 $h$ と天気 $y$ が決まります。<strong>同時分布</strong> $p(h,y)$ は、すべての<em>組</em>に確率を与えます。下の図では湿度を5つの範囲にまとめています。</p>
+
+  <details class="predict">
+    <summary><span lang="en">In the 0.8–1.0 humidity column, what fraction of days are rainy?</span><span lang="ja">湿度0.8〜1.0の列では、雨の日の割合はどのくらいでしょうか？</span></summary>
+    <p lang="en">Click that column. About 0.96. The joint cell alone (≈0.19) is <em>not</em> the answer. It has to be divided by the column total.</p>
+    <p lang="ja">その列をクリックしてみてください。約0.96です。同時分布のマスの値（≈0.19）そのものは答えでは<em>ありません</em>。列の合計で割る必要があります。</p>
+  </details>
+
+  <figure class="widget" data-widget="joint-heatmap">
+    <figcaption>
+      <span lang="en">The joint table for humidity × weather, built from the true model $p(\text{rain}\mid h)=\sigma(12h-7.2)$ with uniform humidity.</span>
+      <span lang="ja">湿度×天気の同時分布の表。湿度は一様とし、真のモデル $p(\text{雨}\mid h)=\sigma(12h-7.2)$ から作っています。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en"><strong>Marginal:</strong> sum out what you ignore, $p(y)=\sum_h p(h,y)$. <strong>Conditional:</strong> keep one slice and renormalize, $p(y\mid h)=p(h,y)/p(h)$.</p>
+    <p lang="ja"><strong>周辺分布：</strong>無視する変数について足し合わせます。$p(y)=\sum_h p(h,y)$。<strong>条件付き分布：</strong>1つの断面だけを残し、合計が1になるように正規化します。$p(y\mid h)=p(h,y)/p(h)$。</p>
+  </div>
+
+  <p lang="en">Keep an eye on $p(y\mid h)$. For every humidity it gives a whole distribution over weather. That object, “a distribution for each input,” is exactly what this book is about learning.</p>
+  <p lang="ja">$p(y\mid h)$ に注目してください。湿度ごとに、天気についての分布をまるごと1つ与えています。この「入力ごとに1つの分布」こそ、この本で学習しようとしている対象です。</p>
+
+  <!-- 1.6 -->
+  <h2><span lang="en">1.6 Bayes' rule is slicing the other way</span><span lang="ja">1.6 ベイズの定理は逆向きに切ること</span></h2>
+  <p lang="en">The joint table can be sliced by column (given $h$) or by row (given $y$). Bayes' rule simply converts one slicing into the other. It is easiest to see as areas.</p>
+  <p lang="ja">同時分布の表は、列で切る（$h$ で条件付ける）ことも、行で切る（$y$ で条件付ける）こともできます。ベイズの定理は、一方の切り方をもう一方に変換するだけのものです。面積で見ると一番分かりやすいでしょう。</p>
+
+  <figure class="widget" data-widget="bayes-area">
+    <figcaption>
+      <span lang="en">Every morning is a point in the square. Seeing clouds throws away the faded regions. The posterior is the blue share of what is left.</span>
+      <span lang="ja">正方形の中の1点が、ある1日の朝です。曇りを見ると、薄くなった領域は捨てられます。事後確率は、残った領域のうち青の占める割合です。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$p(y\mid x)=\frac{p(x\mid y)\,p(y)}{p(x)},\qquad p(x)=\sum_{y}p(x\mid y)\,p(y).$$
+  </div>
+
+  <!-- 1.7 -->
+  <h2><span lang="en">1.7 Summaries: balance point and spread</span><span lang="ja">1.7 要約：つり合いの点と広がり</span></h2>
+  <p lang="en">A whole distribution is a lot of information. Two numbers summarize it surprisingly well. The <strong>expectation</strong> is where a beam loaded with the probabilities would balance. The <strong>variance</strong> measures how far, on average (squared), the mass sits from that point.</p>
+  <p lang="ja">分布全体は情報量が多いものです。しかし、たった2つの数で驚くほどよく要約できます。<strong>期待値</strong>は、確率の重りを載せた棒がつり合う位置です。<strong>分散</strong>は、重りがその位置から平均して（2乗で測って）どれだけ離れているかを表します。</p>
+
+  <figure class="widget" data-widget="expectation-balance">
+    <figcaption>
+      <span lang="en">Four outcomes with adjustable positions and weights. The fulcrum is the mean.</span>
+      <span lang="ja">位置と重みを変えられる4つの結果。支点の位置が平均です。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">$\mathbb E[Y]=\sum_y y\,p(y)$ (or $\int y\,p(y)\,dy$), and $\operatorname{Var}[Y]=\mathbb E\big[(Y-\mathbb E[Y])^2\big]$. Both are <em>operators</em>: they take a whole distribution and return one number.</p>
+    <p lang="ja">$\mathbb E[Y]=\sum_y y\,p(y)$（または $\int y\,p(y)\,dy$）、$\operatorname{Var}[Y]=\mathbb E\big[(Y-\mathbb E[Y])^2\big]$。どちらも<em>作用素</em>で、分布をまるごと受け取って数を1つ返します。</p>
+  </div>
+
+  <!-- back to example -->
+  <h2><span lang="en">Back to the forecast</span><span lang="ja">予報に戻る</span></h2>
+  <p lang="en">“70% chance of rain” is a statement about a <em>conditional distribution</em>: given everything the forecaster knows today ($x$), tomorrow's weather $y$ follows a Bernoulli distribution with knob $0.7$. A single day cannot check it. Many days with similar $x$ can: about 70% of them should be rainy. Chapter 2 builds the tool for scoring this.</p>
+  <p lang="ja">「降水確率70%」は<em>条件付き分布</em>についての主張です。予報士が今日知っていること全体を $x$ とすると、「$x$ のもとで、明日の天気 $y$ はつまみが $0.7$ の Bernoulli 分布に従う」と言っています。1日だけでは確かめられません。しかし $x$ が似た日がたくさんあれば確かめられます。その約70%が雨になっているはずです。この採点のための道具を第2章で作ります。</p>
+
+  <div class="box takeaway">
+    <p lang="en">A distribution is a function that spreads one unit of probability over the possible outcomes. A conditional distribution does this once for every input.</p>
+    <p lang="ja">分布とは、1単位の確率を起こりうる結果の上に配る関数である。条件付き分布は、それを入力ごとに1回ずつ行う。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">Why can $p(y)=3$ be a valid density but never a valid PMF value?</span><span lang="ja">$p(y)=3$ が密度としては正しくても、PMFの値としては決して正しくないのはなぜでしょうか？</span></summary>
+    <p lang="en">A PMF value <em>is</em> a probability, so it is at most 1. A density is probability per unit length. A tall, narrow spike can have height 3 while its area is still at most 1.</p>
+    <p lang="ja">PMFの値は確率<em>そのもの</em>なので、1以下です。密度は単位長さあたりの確率です。細く高いとがりなら、高さが3でも面積は1以下に収まります。</p>
+  </details>
+  <details class="check">
+    <summary><span lang="en">In the joint table, is $p(\text{rain}\mid h\in[0.8,1])$ equal to $p(h\in[0.8,1]\mid\text{rain})$?</span><span lang="ja">同時分布の表で、$p(\text{雨}\mid h\in[0.8,1])$ と $p(h\in[0.8,1]\mid\text{雨})$ は等しいでしょうか？</span></summary>
+    <p lang="en">No. The first divides the cell by its column total (≈0.96). The second divides it by the rain row total (≈0.48). Bayes' rule links the two.</p>
+    <p lang="ja">等しくありません。前者はマスの値を列の合計で割り（≈0.96）、後者は雨の行の合計で割ります（≈0.48）。この2つをつなぐのがベイズの定理です。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">Two forecasters both give probabilities. Which one describes the weather <em>better</em>? We need a single number that measures how well one distribution describes another. → <a href="ch02-information.html">Chapter 2</a></p>
+    <p lang="ja">2人の予報士がどちらも確率を出しています。どちらが天気を<em>よりよく</em>表しているのでしょうか。ある分布が別の分布をどれだけうまく表すかを、1つの数で測る必要があります。→ <a href="ch02-information.html">第2章</a></p>
+  </div>
+</main>
+</body>
+</html>

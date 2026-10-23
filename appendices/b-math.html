@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B. Math Prerequisites · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="appB">
+<main>
+  <p class="kicker"><span lang="en">Appendix B</span><span lang="ja">付録B</span></p>
+  <h1><span lang="en">Math Prerequisites</span><span lang="ja">前提となる数学</span></h1>
+  <p lang="en">Just enough background to read every formula in the book. Each section says where it is used.</p>
+  <p lang="ja">この本のすべての式を読むのに必要な、最小限の背景です。各節には、どこで使うかを書いてあります。</p>
+
+  <h2 id="calculus"><span lang="en">B.1 Calculus: slopes, areas, chains</span><span lang="ja">B.1 微積分：傾き・面積・連鎖</span></h2>
+  <p lang="en"><strong>Derivative.</strong> $f'(x)=\lim_{h\to0}\frac{f(x+h)-f(x)}{h}$ is the slope of the tangent line. Used for gradients (Chapter 10) and activation slopes (Chapter 7).</p>
+  <p lang="ja"><strong>微分。</strong>$f'(x)=\lim_{h\to0}\frac{f(x+h)-f(x)}{h}$ は接線の傾きです。勾配（第10章）や活性化関数の傾き（第7章）で使います。</p>
+
+  <figure class="widget" data-widget="derivative-tangent">
+    <figcaption>
+      <span lang="en">The tangent line at x. The last function shows the chain rule.</span>
+      <span lang="ja">x での接線。最後の関数は連鎖律の例です。</span>
+    </figcaption>
+  </figure>
+
+  <p lang="en"><strong>Chain rule.</strong> $(g\circ f)'(x)=g'(f(x))\,f'(x)$, the outer slope times the inner slope. Backpropagation is this rule applied to a long chain (Chapter 10).</p>
+  <p lang="ja"><strong>連鎖律。</strong>$(g\circ f)'(x)=g'(f(x))\,f'(x)$、つまり外側の傾き × 内側の傾き。誤差逆伝播法は、この規則を長い連鎖に当てはめたものです（第10章）。</p>
+  <p lang="en"><strong>Partial derivatives and the gradient.</strong> For $L(\theta_1,\dots,\theta_d)$, $\partial L/\partial\theta_j$ is the slope when only $\theta_j$ moves. The gradient $\nabla L=(\partial L/\partial\theta_1,\dots)$ points uphill, steepest first.</p>
+  <p lang="ja"><strong>偏微分と勾配。</strong>$L(\theta_1,\dots,\theta_d)$ について、$\partial L/\partial\theta_j$ は $\theta_j$ だけを動かしたときの傾きです。勾配 $\nabla L=(\partial L/\partial\theta_1,\dots)$ は、最も急な上り坂の向きを指します。</p>
+  <p lang="en"><strong>Integral.</strong> $\int_a^b p(y)\,dy$ is the area under $p$ between $a$ and $b$. Used for probabilities of continuous variables (Chapter 1) and expectations.</p>
+  <p lang="ja"><strong>積分。</strong>$\int_a^b p(y)\,dy$ は、$a$ と $b$ の間で $p$ の下にある面積です。連続変数の確率（第1章）や期待値で使います。</p>
+
+  <h2 id="linalg"><span lang="en">B.2 Linear algebra: matrices are maps</span><span lang="ja">B.2 線形代数：行列は写像</span></h2>
+  <p lang="en">A matrix $W\in\mathbb R^{m\times n}$ maps a vector $x\in\mathbb R^n$ to $Wx\in\mathbb R^m$. It rotates, stretches, and projects, and it sends straight lines to straight lines (see the layer animation in <a href="../chapters/ch06-architectures.html">6.3</a>). Multiplying matrices composes maps: $W_2(W_1x)=(W_2W_1)x$, which is why linear layers collapse (<a href="../chapters/ch07-activations.html">7.1</a>).</p>
+  <p lang="ja">行列 $W\in\mathbb R^{m\times n}$ は、ベクトル $x\in\mathbb R^n$ を $Wx\in\mathbb R^m$ に写します。回転・伸縮・射影を行い、直線を直線に写します（<a href="../chapters/ch06-architectures.html">6.3</a> の層のアニメーションを参照）。行列の積は写像の合成です：$W_2(W_1x)=(W_2W_1)x$。だから線形の層はつぶれてしまうのです（<a href="../chapters/ch07-activations.html">7.1</a>）。</p>
+  <p lang="en">The <strong>dot product</strong> $w^\top x=\sum_j w_jx_j$ measures how much $x$ points along $w$. A single neuron computes $\sigma(w^\top x+b)$. The <strong>norm</strong> $\|w\|=\sqrt{w^\top w}$ is a vector's length, and weight decay penalizes it (Chapter 12).</p>
+  <p lang="ja"><strong>内積</strong> $w^\top x=\sum_j w_jx_j$ は、$x$ が $w$ の向きにどれだけ向いているかを測ります。ニューロン1つが計算するのは $\sigma(w^\top x+b)$ です。<strong>ノルム</strong> $\|w\|=\sqrt{w^\top w}$ はベクトルの長さで、重み減衰はこれに罰を与えます（第12章）。</p>
+
+  <h2 id="logs"><span lang="en">B.3 Logarithms and exponentials</span><span lang="ja">B.3 対数と指数</span></h2>
+  $$\log(ab)=\log a+\log b,\qquad \log_2 x=\frac{\ln x}{\ln 2},\qquad \ln t\le t-1\ (\text{equality iff } t=1).$$
+  <p lang="en">The first identity is why surprise adds up over independent events (Chapter 2). The second converts nats to bits. The third proves that KL is never negative (<a href="c-proofs.html#gibbs">C.1</a>). The exponential $e^z$ is always positive, which is why softmax and $\sigma=\exp(\log\sigma)$ give valid probabilities and scales.</p>
+  <p lang="ja">1つ目の恒等式があるから、独立な事象の驚きは足し算になります（第2章）。2つ目はナットをビットに変換します。3つ目は KL が決して負にならないことを証明します（<a href="c-proofs.html#gibbs">C.1</a>）。指数関数 $e^z$ は常に正なので、softmax や $\sigma=\exp(\log\sigma)$ は正しい確率やスケールを与えます。</p>
+
+  <h2 id="measure"><span lang="en">B.4 A little measure-theoretic language</span><span lang="ja">B.4 測度論の言葉を少しだけ</span></h2>
+  <p lang="en">A <strong>probability space</strong> $(\Omega,\mathcal F,P)$ has outcomes $\Omega$, a collection $\mathcal F$ of events we can assign probabilities to (a σ-algebra: closed under complement and countable union), and a measure $P$ with $P(\Omega)=1$. A <strong>random variable</strong> is a measurable function $Y:\Omega\to\mathbb R$. A <strong>density</strong> $p$ with respect to a base measure $\mu$ satisfies $P(Y\in A)=\int_A p\,d\mu$. With counting measure this is a PMF, and with length (Lebesgue measure) it is a PDF. That is why Chapters 1–2 can treat sums and integrals as the same idea.</p>
+  <p lang="ja"><strong>確率空間</strong> $(\Omega,\mathcal F,P)$ は、結果の集合 $\Omega$、確率を割り当てられる事象の集まり $\mathcal F$（σ-加法族：補集合と可算和について閉じている）、そして $P(\Omega)=1$ を満たす測度 $P$ からなります。<strong>確率変数</strong>とは可測関数 $Y:\Omega\to\mathbb R$ のことです。基準測度 $\mu$ に関する<strong>密度</strong> $p$ は $P(Y\in A)=\int_A p\,d\mu$ を満たします。数え上げ測度ならこれは PMF に、長さ（ルベーグ測度）なら PDF になります。だから第1〜2章では、和と積分を同じ考え方として扱えるのです。</p>
+
+  <h2 id="expect"><span lang="en">B.5 Expectations</span><span lang="ja">B.5 期待値</span></h2>
+  $$\mathbb E[g(Y)]=\sum_y g(y)\,p(y)\ \text{ or }\ \int g(y)\,p(y)\,dy,\qquad \mathbb E[aX+bY]=a\,\mathbb E[X]+b\,\mathbb E[Y].$$
+  <p lang="en">Linearity lets us move averages through sums. This is why the average loss over data estimates the expected loss (Chapter 4), and why gradients of averages are averages of gradients (SGD, Chapter 10).</p>
+  <p lang="ja">線形性のおかげで、平均を和の中に通せます。だから、データ上の平均損失は期待損失を推定し（第4章）、平均の勾配は勾配の平均になるのです（SGD、第10章）。</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10. Gradient-Based Learning · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch10">
+<main>
+  <p class="kicker"><span lang="en">Part IV · Chapter 10</span><span lang="ja">第IV部・第10章</span></p>
+  <h1><span lang="en">Gradient-Based Learning</span><span lang="ja">勾配に基づく学習</span></h1>
+  <p class="question"><span lang="en">How does following the slope find a good distribution?</span><span lang="ja">坂を下ることで、なぜよい分布が見つかるのか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">You can feel which way the ground tilts and how steeply. You take a step downhill. How big should that step be? Too small and you will be walking all night. Too big and you leap clean over the valley onto the opposite slope, higher than where you started.</p>
+    <p lang="ja">地面がどちらに、どれだけ急に傾いているかは足で分かります。坂の下に向かって1歩踏み出します。歩幅はどれくらいにすべきでしょうか。小さすぎれば一晩中歩き続けることになり、大きすぎれば谷を飛び越えて向かいの斜面の、出発点より高い場所に着地してしまいます。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>Derive gradient descent and see why the step size is limited by curvature.</li>
+    <li>Trace backpropagation as the chain rule, applied right to left.</li>
+    <li>Understand the $q-y$ gradient and its moment-matching meaning.</li>
+    <li>Compare SGD, momentum, and Adam.</li>
+    <li>See how initialization and normalization keep signals alive.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>勾配降下法を導き、歩幅が曲率で制限される理由を理解する。</li>
+    <li>誤差逆伝播法を、右から左へ適用する連鎖律としてたどる。</li>
+    <li>勾配 $q-y$ と、そのモーメント一致としての意味を理解する。</li>
+    <li>SGD、モメンタム、Adam を比べる。</li>
+    <li>初期化と正規化が、どのように信号を生かし続けるかを見る。</li>
+  </ul>
+
+  <!-- 10.1 -->
+  <h2><span lang="en">10.1 Gradient descent</span><span lang="ja">10.1 勾配降下法</span></h2>
+  <p lang="en">Near any point, a smooth loss looks like a tilted plane: $L(\theta+\Delta)\approx L(\theta)+\nabla L(\theta)\cdot\Delta$. To go down fastest for a small step, move against the gradient.</p>
+  <p lang="ja">滑らかな損失は、どの点の近くでも傾いた平面のように見えます：$L(\theta+\Delta)\approx L(\theta)+\nabla L(\theta)\cdot\Delta$。小さな1歩で最も速く下るには、勾配と逆の向きに動けばよいのです。</p>
+
+  <div class="box definition">
+    $$\theta_{k+1}=\theta_k-\eta\,\nabla_\theta L(\theta_k),\qquad \eta=\text{learning rate}.$$
+  </div>
+
+  <details class="predict">
+    <summary><span lang="en">On $L=\theta^2$, what happens at η = 0.5? At η = 1.05?</span><span lang="ja">$L=\theta^2$ で、η = 0.5 だと何が起きるでしょうか。η = 1.05 では？</span></summary>
+    <p lang="en">At 0.5 you land on the minimum in one step (the factor is $1-2\eta=0$). At 1.05 the factor is $-1.1$, so each step overshoots by more than the last, and the iterates diverge.</p>
+    <p lang="ja">0.5 なら1歩で最小点に着きます（倍率は $1-2\eta=0$）。1.05 なら倍率は $-1.1$ で、1歩ごとに前よりも大きく行き過ぎ、発散します。</p>
+  </details>
+
+  <figure class="widget" data-widget="gd-1d">
+    <figcaption>
+      <span lang="en">Gradient descent on a parabola, starting at θ = −2.5.</span>
+      <span lang="ja">放物線上の勾配降下法。θ = −2.5 から出発します。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 10.2 -->
+  <h2><span lang="en">10.2 Backpropagation is the chain rule, done backwards</span><span lang="ja">10.2 誤差逆伝播法は、逆向きに行う連鎖律</span></h2>
+  <p lang="en">A network is a chain of simple boxes, and the chain rule says the derivative of a chain is the product of the boxes' local slopes. Computing it from the <em>output</em> backwards shares work. One backward sweep gives the gradient for <em>every</em> parameter at about the cost of one forward pass.</p>
+  <p lang="ja">ネットワークは単純な箱の連なりで、連鎖律によれば、連なりの微分は各箱の局所的な傾きの積です。これを<em>出力</em>側から逆向きに計算すると、計算を使い回せます。1回の逆向きの走査で、<em>すべての</em>パラメータの勾配が、順伝播1回分とほぼ同じコストで求まります。</p>
+
+  <figure class="widget" data-widget="backprop-graph">
+    <figcaption>
+      <span lang="en">The rain model on a single day as a computation graph. Step forward to compute values, then backward to compute gradients.</span>
+      <span lang="ja">1日分の雨のモデルを計算グラフにしたもの。前に進めて値を計算し、そのあと後ろ向きに勾配を計算します。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$\frac{\partial\ell}{\partial w}=\frac{\partial\ell}{\partial q}\cdot\frac{\partial q}{\partial z}\cdot\frac{\partial z}{\partial u}\cdot\frac{\partial u}{\partial w}.$$
+    <p lang="en"><strong>Reverse-mode differentiation</strong> evaluates this product from the left. Each box only needs its local slope and the gradient arriving from its right.</p>
+    <p lang="ja"><strong>リバースモード微分</strong>は、この積を左から計算します。各箱に必要なのは、自分の局所的な傾きと、右から届く勾配だけです。</p>
+  </div>
+
+  <!-- 10.3 -->
+  <h2><span lang="en">10.3 The gradient is $q-y$</span><span lang="ja">10.3 勾配は $q-y$</span></h2>
+  <p lang="en">The graph above showed something special: with sigmoid and log-loss, everything between the loss and the logit collapses to <em>prediction minus outcome</em>. The same holds for softmax with cross-entropy (proof in <a href="../appendices/c-proofs.html#softmax-grad">Appendix C</a>). Learning becomes a very simple rule: push each prediction toward what happened, in proportion to the miss.</p>
+  <p lang="ja">上の計算グラフは特別なことを示していました。sigmoid と対数損失の組み合わせでは、損失からロジットまでの間がすべて<em>予測 − 結果</em>に縮むのです。softmax と交差エントロピーでも同じことが成り立ちます（証明は<a href="../appendices/c-proofs.html#softmax-grad">付録C</a>）。学習は、とても単純な規則になります。各予測を、外した分に比例して、実際に起きたことのほうへ押すのです。</p>
+
+  <details class="predict">
+    <summary><span lang="en">Start at w = 2, b = 0. Before stepping: is the model expecting too many rainy days, or too few?</span><span lang="ja">w = 2、b = 0 から始めます。1歩進む前に考えてみましょう。モデルが予想する雨の日数は多すぎるでしょうか、少なすぎるでしょうか？</span></summary>
+    <p lang="en">Too many. It predicts about 43 against 21 observed, so ∂R/∂b &gt; 0 and the step lowers b.</p>
+    <p lang="ja">多すぎます。観測された21日に対して約43日と予想しているので、∂R/∂b &gt; 0 となり、1歩進むと b が下がります。</p>
+  </details>
+
+  <figure class="widget" data-widget="gradient-q-minus-y">
+    <figcaption>
+      <span lang="en">Each vertical segment is one day's $q_i-y_i$. The bars compare expected and observed rainy days.</span>
+      <span lang="ja">縦の線分は、それぞれ1日分の $q_i-y_i$ です。棒は、予想された雨の日数と観測された雨の日数を比べています。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$\nabla_\theta\hat R=\frac1n\sum_i\big(q_\theta(x_i)-y_i\big)\,\nabla_\theta f_\theta(x_i).$$
+    <p lang="en">At a minimum, the model's expected statistics equal the data's (<strong>moment matching</strong>). This is true for every exponential-family output with its natural link (Chapter 7).</p>
+    <p lang="ja">最小点では、モデルの期待する統計量がデータの統計量と等しくなります（<strong>モーメント一致</strong>）。これは、自然なリンクを使うすべての指数型分布族の出力で成り立ちます（第7章）。</p>
+  </div>
+
+  <!-- 10.4 -->
+  <h2><span lang="en">10.4 SGD, momentum, Adam</span><span lang="ja">10.4 SGD・モメンタム・Adam</span></h2>
+  <p lang="en">Three practical improvements, each aimed at a landscape problem from Chapter 9.</p>
+  <ul lang="en">
+    <li><strong>SGD:</strong> estimate the gradient from a small random batch. It is much cheaper per step, and its noise helps escape saddles.</li>
+    <li><strong>Momentum:</strong> keep a running velocity. Oscillations across a ravine cancel out while motion along it accumulates.</li>
+    <li><strong>Adam:</strong> divide each coordinate's step by a running estimate of its gradient size, so steep and shallow directions move at similar speeds.</li>
+  </ul>
+  <p lang="ja">実用上の3つの改良で、それぞれ第9章の地形の問題を狙ったものです。</p>
+  <ul lang="ja">
+    <li><strong>SGD：</strong>小さなランダムなバッチから勾配を推定します。1歩あたりがずっと安く、そのノイズが鞍点からの脱出を助けます。</li>
+    <li><strong>モメンタム：</strong>速度を積み上げ続けます。峡谷を横切る振動は打ち消し合い、谷に沿った動きは蓄積されます。</li>
+    <li><strong>Adam：</strong>各座標の歩幅を、その勾配の大きさの移動推定値で割ります。急な方向も緩やかな方向も、似た速さで進むようになります。</li>
+  </ul>
+
+  <figure class="widget" data-widget="optimizer-race">
+    <figcaption>
+      <span lang="en">Four optimizers from the same start, 300 steps each. The landscapes are analytic, so the race is computed live.</span>
+      <span lang="ja">同じ出発点から4つの最適化手法がそれぞれ300歩進みます。地形が解析的なので、競争はその場で計算しています。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$\textbf{momentum: } v\leftarrow\beta v+\nabla L,\;\theta\leftarrow\theta-\eta v\qquad \textbf{Adam: } \theta_j\leftarrow\theta_j-\eta\,\frac{\hat m_j}{\sqrt{\hat s_j}+\epsilon}$$
+  </div>
+
+  <!-- 10.5 -->
+  <h2><span lang="en">10.5 Initialization and normalization</span><span lang="ja">10.5 初期化と正規化</span></h2>
+  <p lang="en">Chapter 7 showed gradients vanishing or exploding with depth. The same compounding happens on the forward pass, and it starts at step zero. Choose the initial weight scale so each layer roughly preserves the spread of its input, or re-standardize every layer explicitly (batch norm, layer norm).</p>
+  <p lang="ja">第7章では、深さとともに勾配が消えたり爆発したりするのを見ました。同じ積み重なりは順伝播でも起こり、しかもステップ0から始まります。各層が入力の広がりをおよそ保つように重みの初期スケールを選ぶか、各層を明示的に標準化し直します（バッチ正規化、レイヤー正規化）。</p>
+
+  <figure class="widget" data-widget="init-scale">
+    <figcaption>
+      <span lang="en">Activation spread through a random 20-layer, width-64 network.</span>
+      <span lang="ja">幅64、20層のランダムなネットワークを通るときの活性の広がり。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box misconception">
+    <p lang="en">“A smaller learning rate is always safer.” It is safer against divergence, but it can stall on plateaus and wastes compute. Practical training uses schedules: warm up, then decay.</p>
+    <p lang="ja">「学習率は小さいほど安全」というのは誤りです。発散に対しては安全ですが、台地で止まってしまうことがあり、計算も無駄にします。実際の学習ではスケジュールを使います。最初は徐々に上げ（ウォームアップ）、そのあと下げていきます。</p>
+  </div>
+
+  <div class="box takeaway">
+    <p lang="en">For log-loss, every gradient step says: move each prediction toward what actually happened, in proportion to the miss. Backprop computes this for every weight at once, and good optimizers and initializations keep the steps well-sized.</p>
+    <p lang="ja">対数損失では、勾配の1歩ごとに「各予測を、外した分に比例して、実際に起きたことに近づけよ」と言っている。逆伝播はこれをすべての重みについて一度に計算し、よい最適化手法と初期化が歩幅を適切に保つ。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">The model says q = 0.9 on a dry day. What is ∂ℓ/∂z, and which way does z move?</span><span lang="ja">晴れの日に、モデルが q = 0.9 と言いました。∂ℓ/∂z はいくらで、z はどちらへ動くでしょうか？</span></summary>
+    <p lang="en">$q-y=0.9-0=0.9$. Gradient descent subtracts it, so the logit decreases and the predicted chance of rain falls.</p>
+    <p lang="ja">$q-y=0.9-0=0.9$ です。勾配降下法はこれを引くので、ロジットが下がり、予測される雨の確率も下がります。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">Everything here needed a gradient. What if the objective isn't differentiable, or we want to search over the architecture itself? → <a href="ch11-gradient-free.html">Chapter 11</a></p>
+    <p lang="ja">ここまでのすべてに勾配が必要でした。目的関数が微分できない場合や、アーキテクチャそのものを探索したい場合はどうすればよいでしょうか。→ <a href="ch11-gradient-free.html">第11章</a></p>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D. Exercises and Code · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+<style>pre{background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:.8rem;overflow-x:auto;font-size:13.5px;line-height:1.5}</style>
+</head>
+<body data-page="appD">
+<main>
+  <p class="kicker"><span lang="en">Appendix D</span><span lang="ja">付録D</span></p>
+  <h1><span lang="en">Exercises and Code</span><span lang="ja">演習とコード</span></h1>
+  <p lang="en">One exercise per chapter, using only NumPy. Try it first, then open the solution. Every snippet starts from this shared setup, which recreates the book's running examples (the same data the interactive figures use comes from <code>tools/generate_data.py</code>):</p>
+  <p lang="ja">各章に1つずつ、NumPy だけを使う演習を用意しました。まず自分で試し、それから解答を開いてください。どのコードも、本の例題を再現する次の共通セットアップから始まります（インタラクティブな図と同じデータは <code>tools/generate_data.py</code> で作っています）：</p>
+<pre><code>import numpy as np
+rng = np.random.default_rng(0)
+sigmoid = lambda z: 1 / (1 + np.exp(-z))
+p_rain = lambda h: sigmoid(12 * h - 7.2)          # true p(rain | h)
+
+h = rng.uniform(0, 1, 60);  y = (rng.uniform(size=60) &lt; p_rain(h)).astype(float)
+x = rng.uniform(0, 2 * np.pi, 40);  t = np.sin(x) + 0.3 * rng.normal(size=40)</code></pre>
+
+  <h2><span lang="en">Part I</span><span lang="ja">第I部</span></h2>
+  <details class="check">
+    <summary><span lang="en">Ch. 1: Estimate $p(\text{rain}\mid h\in[0.8,1])$ by simulation and compare with the joint-table value (≈ 0.96).</span><span lang="ja">第1章：$p(\text{雨}\mid h\in[0.8,1])$ をシミュレーションで推定し、同時分布の表の値（≈ 0.96）と比べてください。</span></summary>
+<pre><code>H = rng.uniform(0, 1, 200_000); Y = rng.uniform(size=H.size) &lt; p_rain(H)
+col = (H &gt;= 0.8)
+print(Y[col].mean())               # conditional = joint / marginal ≈ 0.96</code></pre>
+  </details>
+  <details class="check">
+    <summary><span lang="en">Ch. 2: Compute forecasters A and B's average surprise, and verify $H(p,q)=H(p)+D_{KL}(p\|q)$ for random $p,q$.</span><span lang="ja">第2章：予報士 A と B の平均の驚きを計算し、ランダムな $p,q$ について $H(p,q)=H(p)+D_{KL}(p\|q)$ を確かめてください。</span></summary>
+<pre><code>days = np.array([1,1,0,1,0,1,1,0,0,1]); call = days.copy(); call[5] ^= 1
+for name, c in [("A", .99), ("B", .8)]:
+    q = np.where(call == 1, c, 1 - c)
+    print(name, np.mean(-np.log2(np.where(days == 1, q, 1 - q))))   # A 0.68, B 0.52
+
+p, q = rng.dirichlet(np.ones(4)), rng.dirichlet(np.ones(4))
+H = -(p * np.log2(p)).sum(); CE = -(p * np.log2(q)).sum(); KL = (p * np.log2(p / q)).sum()
+print(np.isclose(CE, H + KL), KL &gt;= 0)</code></pre>
+  </details>
+
+  <h2><span lang="en">Part II</span><span lang="ja">第II部</span></h2>
+  <details class="check">
+    <summary><span lang="en">Ch. 3: Show that $f(x)=a\,b\,x$ gives the same function for $(a,b)=(2,1.5)$ and $(-1,-3)$.</span><span lang="ja">第3章：$f(x)=a\,b\,x$ が $(a,b)=(2,1.5)$ と $(-1,-3)$ で同じ関数になることを示してください。</span></summary>
+<pre><code>xs = np.linspace(-1, 1, 5)
+print(np.allclose(2 * 1.5 * xs, -1 * -3 * xs))   # True: two addresses, one function</code></pre>
+  </details>
+  <details class="check">
+    <summary><span lang="en">Ch. 4: For $q_w=\sigma(w(h-0.6))$, plot empirical risk vs. true risk over $w\in[0,40]$ for $n=10$ and $n=1000$.</span><span lang="ja">第4章：$q_w=\sigma(w(h-0.6))$ について、$w\in[0,40]$ での経験リスクと真のリスクを $n=10$ と $n=1000$ で描いてください。</span></summary>
+<pre><code>def risk_curve(hh, yy, ws):
+    q = np.clip(sigmoid(ws[:, None] * (hh[None] - 0.6)), 1e-9, 1 - 1e-9)
+    return -(yy * np.log2(q) + (1 - yy) * np.log2(1 - q)).mean(1)
+ws = np.linspace(0, 40, 161)
+grid = np.linspace(0, 1, 2001); true = risk_curve(grid, p_rain(grid), ws)   # expectation over y
+for n in [10, 1000]:
+    hh = rng.uniform(0, 1, n); yy = (rng.uniform(size=n) &lt; p_rain(hh)).astype(float)
+    print(n, ws[risk_curve(hh, yy, ws).argmin()], "vs", ws[true.argmin()])</code></pre>
+  </details>
+  <details class="check">
+    <summary><span lang="en">Ch. 5: Kernel-smooth the curve data and find the bandwidth that best matches $\sin x$.</span><span lang="ja">第5章：曲線のデータをカーネル平滑化し、$\sin x$ に最もよく合う幅を見つけてください。</span></summary>
+<pre><code>g = np.linspace(0, 2 * np.pi, 200)
+def smooth(bw):
+    W = np.exp(-0.5 * ((g[:, None] - x[None]) / bw) ** 2)
+    return (W @ t) / W.sum(1)
+bws = np.geomspace(0.03, 3, 40)
+errs = [np.mean((smooth(b) - np.sin(g)) ** 2) for b in bws]
+print(bws[np.argmin(errs)])</code></pre>
+  </details>
+
+  <h2><span lang="en">Part III</span><span lang="ja">第III部</span></h2>
+  <details class="check">
+    <summary><span lang="en">Ch. 6: Build the ReLU interpolant of $\sin x$ with $N$ knots and report the max error for $N=4,8,16,32$.</span><span lang="ja">第6章：$N$ 個の結び目を持つ $\sin x$ の ReLU 補間を組み立て、$N=4,8,16,32$ での最大誤差を求めてください。</span></summary>
+<pre><code>relu = lambda z: np.maximum(z, 0)
+g = np.linspace(0, 2 * np.pi, 2000)
+for N in [4, 8, 16, 32]:
+    k = np.linspace(0, 2 * np.pi, N + 1); s = np.diff(np.sin(k)) / np.diff(k)
+    c = np.diff(np.concatenate([[0], s]))
+    f = (c[None] * relu(g[:, None] - k[None, :-1])).sum(1)
+    print(N, np.abs(f - np.sin(g)).max())          # error shrinks ~ 1/N^2</code></pre>
+  </details>
+  <details class="check">
+    <summary><span lang="en">Ch. 7: Show numerically that two linear layers equal one, and count ReLU pieces of a random 1-input net.</span><span lang="ja">第7章：線形の層2つが1つと等しいことを数値で示し、入力1つのランダムなネットワークの ReLU の線分を数えてください。</span></summary>
+<pre><code>W1, W2 = rng.normal(size=(6, 1)), rng.normal(size=(1, 6))
+xs = np.linspace(-3, 3, 5)[None]
+print(np.allclose(W2 @ (W1 @ xs), (W2 @ W1) @ xs))
+
+def pieces(depth, width=6, n=4000):
+    xs = np.linspace(-3, 3, n)[:, None]; h = xs; pats = []
+    for l in range(depth):
+        W = rng.normal(size=(h.shape[1], width)) * 1.6 / np.sqrt(h.shape[1]); b = 0.6 * rng.normal(size=width)
+        z = h @ W + b; pats.append(z &gt; 0); h = np.maximum(z, 0)
+    P = np.concatenate(pats, 1)
+    return 1 + (np.any(P[1:] != P[:-1], 1)).sum()
+print([pieces(d) for d in [1, 2, 3, 4]])</code></pre>
+  </details>
+  <details class="check">
+    <summary><span lang="en">Ch. 8: Fit polynomials of degree 0–15 to the curve data and plot train vs. test error.</span><span lang="ja">第8章：曲線のデータに0〜15次の多項式を当てはめ、訓練誤差とテスト誤差を描いてください。</span></summary>
+<pre><code>xt = rng.uniform(0, 2 * np.pi, 500); tt = np.sin(xt) + 0.3 * rng.normal(size=500)
+for d in range(16):
+    V = np.polynomial.chebyshev.chebvander(x / np.pi - 1, d)
+    w = np.linalg.lstsq(V, t, rcond=None)[0]
+    Vt = np.polynomial.chebyshev.chebvander(xt / np.pi - 1, d)
+    print(d, np.mean((V @ w - t) ** 2).round(3), np.mean((Vt @ w - tt) ** 2).round(3))</code></pre>
+  </details>
+
+  <h2><span lang="en">Part IV</span><span lang="ja">第IV部</span></h2>
+  <details class="check">
+    <summary><span lang="en">Ch. 9: Drop 1,000 random starts on the “golf hole” and count how many reach the deep minimum.</span><span lang="ja">第9章：「ゴルフのホール」にランダムな出発点を1,000個落とし、深い最小点に届く数を数えてください。</span></summary>
+<pre><code>def grad(p):
+    x_, y_ = p[..., 0], p[..., 1]
+    e = np.exp(-((x_ - 1.2) ** 2 + (y_ - 1.1) ** 2) / 0.03)
+    gx = 0.24 * (x_ + 0.9) + e * 2 * (x_ - 1.2) / 0.03
+    gy = 0.24 * (y_ + 0.6) + e * 2 * (y_ - 1.1) / 0.03
+    return np.stack([gx, gy], -1)
+P = rng.uniform(-2, 2, (1000, 2))
+for _ in range(400): P -= 0.05 * grad(P)
+print(np.mean(np.hypot(P[:, 0] - 1.2, P[:, 1] - 1.1) &lt; 0.2))   # a small fraction</code></pre>
+  </details>
+  <details class="check">
+    <summary><span lang="en">Ch. 10: Train logistic regression on the rain data with gradient descent, using the $q-y$ gradient, and check moment matching.</span><span lang="ja">第10章：勾配 $q-y$ を使って、雨のデータでロジスティック回帰を勾配降下法で学習させ、モーメント一致を確かめてください。</span></summary>
+<pre><code>w = b = 0.0
+for _ in range(5000):
+    r = sigmoid(w * h + b) - y
+    w -= 2 * np.mean(r * h); b -= 2 * np.mean(r)
+q = sigmoid(w * h + b)
+print(w, b, q.sum(), y.sum(), (q * h).sum(), (y * h).sum())   # sums match</code></pre>
+  </details>
+  <details class="check">
+    <summary><span lang="en">Ch. 11: Optimize the rain loss with a simple evolution strategy (no gradients).</span><span lang="ja">第11章：単純な進化戦略で、雨の損失を最適化してください（勾配は使いません）。</span></summary>
+<pre><code>def loss(th):
+    q = np.clip(sigmoid(th[:, :1] * h + th[:, 1:]), 1e-9, 1 - 1e-9)
+    return -(y * np.log2(q) + (1 - y) * np.log2(1 - q)).mean(1)
+m, s = np.zeros(2), np.array([6.0, 4.0])
+for gen in range(30):
+    S = m + s * rng.normal(size=(20, 2))
+    m = S[np.argsort(loss(S))[:5]].mean(0); s = np.maximum(0.9 * s, 0.2)
+print(m, loss(m[None]))</code></pre>
+  </details>
+  <details class="check">
+    <summary><span lang="en">Ch. 12: Fit a temperature $T$ for an overconfident model ($z=3\times$ the true logit) and compare the log-loss before and after.</span><span lang="ja">第12章：自信過剰なモデル（$z$ = 真のロジットの3倍）について温度 $T$ を当てはめ、前後の対数損失を比べてください。</span></summary>
+<pre><code>hh = rng.uniform(0, 1, 5000); yy = (rng.uniform(size=5000) &lt; p_rain(hh)).astype(float)
+z = 3 * (12 * hh - 7.2)
+def nll(T):
+    q = np.clip(sigmoid(z / T), 1e-12, 1 - 1e-12)
+    return -(yy * np.log2(q) + (1 - yy) * np.log2(1 - q)).mean()
+Ts = np.linspace(0.5, 6, 200); best = Ts[np.argmin([nll(T) for T in Ts])]
+print(nll(1.0), best, nll(best))     # best T ≈ 3 recovers the true model</code></pre>
+  </details>
+
+  <h2><span lang="en">Part V</span><span lang="ja">第V部</span></h2>
+  <details class="check">
+    <summary><span lang="en">Ch. 13: Fit the two-state weather Markov chain by counting, and sample a new month.</span><span lang="ja">第13章：天気の2状態マルコフ連鎖を数え上げで当てはめ、新しい1か月をサンプルしてください。</span></summary>
+<pre><code>seq = (rng.uniform(size=365) &lt; 0.35).astype(int)            # replace with real data
+p1 = seq[1:][seq[:-1] == 1].mean(); p0 = seq[1:][seq[:-1] == 0].mean()   # MLE = frequencies
+day, month = 0, []
+for _ in range(30):
+    day = int(rng.uniform() &lt; (p1 if day else p0)); month.append("☂" if day else "☀")
+print(p0, p1, "".join(month))</code></pre>
+  </details>
+</main>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4. The Meta-Level · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch04">
+<main>
+  <p class="kicker"><span lang="en">Part II · Chapter 4</span><span lang="ja">第II部・第4章</span></p>
+  <h1><span lang="en">The Meta-Level: Learning a Function That Describes a Function</span><span lang="ja">メタレベル：関数を記述する関数を学ぶ</span></h1>
+  <p class="question"><span lang="en">What exactly is being learned, and at which level?</span><span lang="ja">正確には何が、どのレベルで学習されているのか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">People often say “the network outputs a probability distribution.” Look at the last layer of any classifier, though, and you will find a handful of ordinary numbers that can be negative, larger than 1, and don't sum to anything. So where is the distribution?</p>
+    <p lang="ja">「ネットワークは確率分布を出力する」とよく言われます。しかし分類器の最終層を見ると、そこにあるのはありふれた数がいくつかだけです。負にもなり、1より大きくもなり、合計にも決まりがありません。では、分布はどこにあるのでしょうか。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>Separate the four levels: data, the true conditional, the network's raw output, and the model distribution, plus the loss that links them.</li>
+    <li>Explain why we model $p(y\mid x)$ instead of a single curve $y=f(x)$.</li>
+    <li>Distinguish risk from empirical risk.</li>
+    <li>See the parametrization $\theta\mapsto q_\theta$ as a map with its own geometry.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>4つのレベル（データ、真の条件付き分布、ネットワークの生の出力、モデルの分布）と、それらをつなぐ損失を区別する。</li>
+    <li>1本の曲線 $y=f(x)$ ではなく $p(y\mid x)$ をモデル化する理由を説明する。</li>
+    <li>リスクと経験リスクを区別する。</li>
+    <li>パラメータ化 $\theta\mapsto q_\theta$ を、独自の幾何を持つ写像として見る。</li>
+  </ul>
+
+  <!-- 4.1 -->
+  <h2><span lang="en">4.1 The map of the whole book</span><span lang="ja">4.1 この本全体の地図</span></h2>
+  <p lang="en">Almost every confusion about what a network “learns” comes from mixing up levels. Here they are, side by side, for a single rainy-or-dry day.</p>
+  <p lang="ja">ネットワークが「何を学ぶのか」についての混乱は、ほとんどがレベルの取り違えから生じます。雨か晴れかの1日について、レベルを並べてみましょう。</p>
+
+  <table class="w-table" lang="en">
+    <tr><th>Level</th><th>Object</th><th>Type</th></tr>
+    <tr><td>0</td><td>Data $(x_i,y_i)$</td><td>Samples drawn from the world</td></tr>
+    <tr><td>1</td><td>True conditional $p(y\mid x)$</td><td>Input → distribution (unknown target)</td></tr>
+    <tr><td>2</td><td>Network $f_\theta(x)$</td><td>Input → numbers (e.g. logits)</td></tr>
+    <tr><td>3</td><td>Model $q_\theta(y\mid x)=g(f_\theta(x))$</td><td>The distribution those numbers name</td></tr>
+    <tr><td>4</td><td>Loss $D_{KL}(p\,\|\,q_\theta)$</td><td>Functional scoring level 3 against level 1</td></tr>
+  </table>
+  <table class="w-table" lang="ja">
+    <tr><th>レベル</th><th>対象</th><th>型</th></tr>
+    <tr><td>0</td><td>データ $(x_i,y_i)$</td><td>世界から引かれたサンプル</td></tr>
+    <tr><td>1</td><td>真の条件付き分布 $p(y\mid x)$</td><td>入力 → 分布（未知の目標）</td></tr>
+    <tr><td>2</td><td>ネットワーク $f_\theta(x)$</td><td>入力 → 数（ロジットなど）</td></tr>
+    <tr><td>3</td><td>モデル $q_\theta(y\mid x)=g(f_\theta(x))$</td><td>その数が名指す分布</td></tr>
+    <tr><td>4</td><td>損失 $D_{KL}(p\,\|\,q_\theta)$</td><td>レベル3をレベル1と比べて採点する汎関数</td></tr>
+  </table>
+
+  <details class="predict">
+    <summary><span lang="en">Set w = 0 and b = 0. What distribution does the model give for every day, and roughly what is the loss?</span><span lang="ja">w = 0、b = 0 にすると、モデルは毎日どんな分布を出すでしょうか。損失はおよそいくらでしょうか？</span></summary>
+    <p lang="en">The logit is 0 every day, so $q=\sigma(0)=0.5$, a fair coin. Every day costs exactly 1 bit of surprise. Any model worth training must beat 1 bit.</p>
+    <p lang="ja">ロジットは毎日0なので $q=\sigma(0)=0.5$、つまり公平なコインです。毎日ちょうど1ビットの驚きになります。学習する価値のあるモデルなら、1ビットを下回らなければなりません。</p>
+  </details>
+
+  <figure class="widget" data-widget="four-levels">
+    <figcaption>
+      <span lang="en">All five rows of the table at once, for the rain example. Hover any card. Drag w and b until the orange curve hugs the dashed truth.</span>
+      <span lang="ja">表の5行すべてを、雨の例で同時に表示しています。カードにマウスを乗せてみましょう。オレンジの曲線が真実の破線に沿うまで w と b を動かしてください。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 4.2 -->
+  <h2><span lang="en">4.2 Why a distribution and not a curve?</span><span lang="ja">4.2 なぜ曲線ではなく分布なのか</span></h2>
+  <p lang="en">Why not just learn $y=f(x)$? Because the world often gives <em>different</em> answers to the <em>same</em> question. Two days with identical humidity can have different weather. This irreducible randomness is called <strong>aleatoric uncertainty</strong>, and no amount of data removes it.</p>
+  <p lang="ja">なぜ単に $y=f(x)$ を学ばないのでしょうか。世界は<em>同じ</em>問いに<em>違う</em>答えを返すことがよくあるからです。湿度がまったく同じ2日でも、天気は違うことがあります。この取り除けないランダムさを<strong>偶然的不確実性（aleatoric uncertainty）</strong>と呼び、データをいくら増やしても消えません。</p>
+
+  <figure class="widget" data-widget="noise-vs-function">
+    <figcaption>
+      <span lang="en">Turn the noise up and look at a thin vertical strip. Many y values for one x: the right answer there is the histogram, not a point.</span>
+      <span lang="ja">ノイズを大きくして、細い縦の帯を見てみましょう。1つの x に対して y の値がたくさんあります。そこでの正しい答えは点ではなくヒストグラムです。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 4.3 -->
+  <h2><span lang="en">4.3 The network outputs a name</span><span lang="ja">4.3 ネットワークは名前を出力する</span></h2>
+  <p lang="en">A distribution is a whole function (Chapter 3), and a network cannot output a function directly. It can only output a fixed-length list of numbers. The trick is to agree in advance on a <em>family</em> of distributions and a <strong>link</strong> $g$. The family fixes the shape, and the link reads the network's numbers as the family's knobs.</p>
+  <p lang="ja">分布は関数まるごとです（第3章）。ネットワークは関数を直接出力することはできず、出力できるのは長さの決まった数のリストだけです。そこで、分布の<em>族</em>と<strong>リンク</strong> $g$ をあらかじめ取り決めておきます。族が形を決め、リンクがネットワークの数をその族のつまみとして読み取ります。</p>
+
+  <figure class="widget" data-widget="names-not-distributions">
+    <figcaption>
+      <span lang="en">Input → numbers → distribution. For rain the network emits one logit. For the noisy curve it emits a mean and a log-spread.</span>
+      <span lang="ja">入力 → 数 → 分布。雨の例ではネットワークはロジットを1つ出し、ノイズのある曲線の例では平均と広がりの対数を出します。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$q_\theta(y\mid x)\;=\;\underbrace{g}_{\text{link}}\big(\underbrace{f_\theta(x)}_{\text{network}}\big)(y),\qquad \text{e.g. } q_\theta(\text{rain}\mid x)=\sigma\big(f_\theta(x)\big).$$
+    <p lang="en">The network $f_\theta$ maps inputs to <em>parameters of a distribution</em>. The link $g$ maps those parameters to the distribution itself.</p>
+    <p lang="ja">ネットワーク $f_\theta$ は、入力を<em>分布のパラメータ</em>に写します。リンク $g$ は、そのパラメータを分布そのものに写します。</p>
+  </div>
+
+  <!-- 4.4 -->
+  <h2><span lang="en">4.4 Hypothesis class, risk, empirical risk</span><span lang="ja">4.4 仮説クラス・リスク・経験リスク</span></h2>
+  <p lang="en">The set of all $q_\theta$ reachable by turning the knobs is the <strong>hypothesis class</strong> $\mathcal H$. We would like the member of $\mathcal H$ with the smallest expected loss over the <em>whole world</em>, the <strong>risk</strong>. We can only compute the average over our <em>sample</em>, the <strong>empirical risk</strong>. The two curves have different minima, and the gap shrinks as data grows.</p>
+  <p lang="ja">つまみを回して到達できるすべての $q_\theta$ の集合が<strong>仮説クラス</strong> $\mathcal H$ です。本当に欲しいのは、<em>世界全体</em>での期待損失、つまり<strong>リスク</strong>が最小になる $\mathcal H$ の要素です。しかし計算できるのは手元の<em>サンプル</em>での平均、つまり<strong>経験リスク</strong>だけです。2つの曲線は最小点が異なり、その差はデータが増えるほど縮みます。</p>
+
+  <figure class="widget" data-widget="risk-vs-empirical">
+    <figcaption>
+      <span lang="en">A one-knob model $q_w(\text{rain}\mid h)=\sigma(w(h-0.6))$. Blue: true risk. Red: empirical risk on n sampled days.</span>
+      <span lang="ja">つまみが1つのモデル $q_w(\text{雨}\mid h)=\sigma(w(h-0.6))$。青：真のリスク。赤：サンプルした n 日での経験リスク。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$R(\theta)=\mathbb E_{(x,y)\sim p}\big[-\log q_\theta(y\mid x)\big]=\mathbb E_x\big[H(p(\cdot\mid x))+D_{KL}\big(p(\cdot\mid x)\,\|\,q_\theta(\cdot\mid x)\big)\big],$$
+    $$\hat R(\theta)=\frac1n\sum_{i=1}^n -\log q_\theta(y_i\mid x_i).$$
+  </div>
+
+  <!-- 4.5 -->
+  <h2><span lang="en">4.5 The geometry of the parametrization</span><span lang="ja">4.5 パラメータ化の幾何</span></h2>
+  <p lang="en">The map $\theta\mapsto q_\theta$ is not a neutral relabelling. Equal steps in $\theta$ can produce very different changes in $q_\theta$. Some directions barely matter, and others change everything. The loss landscape inherits this shape, and that will matter when we search (Part IV).</p>
+  <p lang="ja">写像 $\theta\mapsto q_\theta$ は、ただの中立な名前の付け替えではありません。$\theta$ を同じ幅だけ動かしても、$q_\theta$ の変わり方は大きく異なることがあります。ほとんど影響しない方向もあれば、すべてを変えてしまう方向もあります。損失の地形はこの形を受け継ぎます。これは探索のとき（第IV部）に効いてきます。</p>
+
+  <figure class="widget" data-widget="param-map">
+    <figcaption>
+      <span lang="en">Left: the $(w,b)$ plane, optionally colored by average loss on the 60 observed days (brighter = lower). Right: the distribution-valued function that point names.</span>
+      <span lang="ja">左：$(w,b)$ 平面。60日分の観測データでの平均損失で色を付けることもできます（明るいほど低い）。右：その点が名指す、分布を値とする関数。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box misconception">
+    <p lang="en">“The sigmoid/softmax output <em>is</em> the probability of rain.” It is the <em>model's</em> probability $q_\theta$, the best member of $\mathcal H$ that the search found using finite data. It approximates $p$ only as well as the hypothesis class, the data, and the search allow. Chapter 12 shows how to check it.</p>
+    <p lang="ja">「sigmoid/softmax の出力が、雨の確率<em>そのもの</em>である」というのは誤りです。それは<em>モデルの</em>確率 $q_\theta$ であり、有限のデータを使った探索で見つかった $\mathcal H$ の最良の要素にすぎません。$p$ をどれだけ近似できるかは、仮説クラス・データ・探索の質しだいです。その確かめ方は第12章で扱います。</p>
+  </div>
+
+  <div class="box takeaway">
+    <p lang="en">The network does not output a distribution. It outputs the numbers that name one.</p>
+    <p lang="ja">ネットワークは分布を出力するのではない。分布を名指す数を出力するのである。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">Which level can we never observe directly, and how does the loss reach it anyway?</span><span lang="ja">直接観測できないのはどのレベルでしょうか。それでも損失がそこに届くのはなぜでしょうか？</span></summary>
+    <p lang="en">Level 1, the true $p(y\mid x)$. Data (level 0) are samples from it. The empirical average NLL estimates the expected loss, and that expectation equals a constant plus the KL to $p$ (Chapter 2).</p>
+    <p lang="ja">レベル1、真の $p(y\mid x)$ です。データ（レベル0）はそこから引かれたサンプルです。経験的な平均負の対数尤度は期待損失を推定しており、その期待値は定数に $p$ との KL を足したものに等しいからです（第2章）。</p>
+  </details>
+  <details class="check">
+    <summary><span lang="en">For the noisy curve, why does the network output $\log\sigma$ rather than $\sigma$?</span><span lang="ja">ノイズのある曲線の例で、ネットワークが $\sigma$ ではなく $\log\sigma$ を出力するのはなぜでしょうか？</span></summary>
+    <p lang="en">The network's outputs are unconstrained real numbers, but a spread must be positive. The link $\sigma=\exp(\cdot)$ (or softplus) turns any real number into a valid knob.</p>
+    <p lang="ja">ネットワークの出力は制約のない実数ですが、広がりは正でなければなりません。リンク $\sigma=\exp(\cdot)$（または softplus）を使えば、どんな実数も正しいつまみに変えられます。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">We know <em>what</em> to learn: a map from $x$ to the knobs of a distribution. Real inputs, though, have structure: symmetries, redundancies, parts. What structure connects $x$ and $y$, and how can it tell us which family of functions to search? → <a href="ch05-structure.html">Chapter 5</a></p>
+    <p lang="ja"><em>何を</em>学ぶべきかは分かりました。$x$ から分布のつまみへの写像です。しかし現実の入力には、対称性・冗長性・部品といった構造があります。$x$ と $y$ をつなぐ構造は何で、それはどの関数族を探索すべきかをどう教えてくれるのでしょうか。→ <a href="ch05-structure.html">第5章</a></p>
+  </div>
+</main>
+</body>
+</html>

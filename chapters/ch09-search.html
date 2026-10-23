@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>9. Learning as Search · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch09">
+<main>
+  <p class="kicker"><span lang="en">Part IV · Chapter 9</span><span lang="ja">第IV部・第9章</span></p>
+  <h1><span lang="en">Learning as Search</span><span lang="ja">探索としての学習</span></h1>
+  <p class="question"><span lang="en">How is “finding the right function” a search problem?</span><span lang="ja">「正しい関数を見つける」ことは、なぜ探索問題なのか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">You are dropped somewhere in foggy mountains and told to find the lowest valley. You can only feel the ground under your feet. Part III proved that a deep valley exists. Will you find it?</p>
+    <p lang="ja">霧に包まれた山地のどこかに降ろされ、最も低い谷を探せと言われます。分かるのは足元の地面の感触だけです。深い谷が存在することは第III部で証明しました。あなたはそこにたどり着けるでしょうか。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>Distinguish moving in parameter space from moving in function space.</li>
+    <li>Recognize the main features of loss landscapes: bowls, ravines, saddles, plateaus, and symmetric copies.</li>
+    <li>Separate “a good solution exists” from “we can find it”.</li>
+    <li>Add optimization error as the third term of the error budget.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>パラメータ空間での移動と関数空間での移動を区別する。</li>
+    <li>損失の地形の主な特徴（お椀、峡谷、鞍点、台地、対称なコピー）を見分ける。</li>
+    <li>「よい解が存在する」ことと「それを見つけられる」ことを分けて考える。</li>
+    <li>誤差の内訳に、3つ目の項として最適化誤差を加える。</li>
+  </ul>
+
+  <!-- 9.1 -->
+  <h2><span lang="en">9.1 The map is not the territory</span><span lang="ja">9.1 地図は土地そのものではない</span></h2>
+  <p lang="en">We search over parameters $\theta$, but what we care about is the function $f_\theta$. Chapter 3 showed that many addresses can point to the same function. In a neural network this happens on a massive scale, because hidden units are interchangeable.</p>
+  <p lang="ja">私たちが探索するのはパラメータ $\theta$ ですが、気にしているのは関数 $f_\theta$ のほうです。第3章で見たように、多くの住所が同じ関数を指すことがあります。ニューラルネットワークでは隠れユニットが互いに入れ替え可能なので、これが大規模に起こります。</p>
+
+  <details class="predict">
+    <summary><span lang="en">If you swap two hidden units (their incoming and outgoing weights together), what happens to the output?</span><span lang="ja">2つの隠れユニットを（入ってくる重みと出ていく重みをまとめて）入れ替えると、出力はどうなるでしょうか？</span></summary>
+    <p lang="en">Nothing. Addition doesn't care about order. The parameter vector moved a long way, but the function didn't move at all.</p>
+    <p lang="ja">何も変わりません。足し算は順番を気にしないからです。パラメータのベクトルは大きく動いたのに、関数はまったく動いていません。</p>
+  </details>
+
+  <figure class="widget" data-widget="permute-units">
+    <figcaption>
+      <span lang="en">A 3-unit tanh network. Left: its 9 weights, coloured by unit (the output bias is not shown). Right: the function, with the original as a thick grey line.</span>
+      <span lang="ja">3ユニットの tanh ネットワーク。左：ユニットごとに色分けした9個の重み（出力のバイアスは省略）。右：関数。太い灰色の線が元の関数です。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">The map $\theta\mapsto f_\theta$ is <strong>many-to-one</strong>. A network with $H$ hidden tanh units has at least $H!\cdot2^H$ parameter vectors for every function it computes. So every good valley in the loss landscape comes with many identical copies.</p>
+    <p lang="ja">写像 $\theta\mapsto f_\theta$ は<strong>多対一</strong>です。tanh の隠れユニットを $H$ 個持つネットワークでは、計算するどの関数にも少なくとも $H!\cdot2^H$ 個のパラメータベクトルが対応します。つまり、損失の地形のよい谷には、まったく同じコピーがたくさんあるのです。</p>
+  </div>
+
+  <!-- 9.2 -->
+  <h2><span lang="en">9.2 Loss landscapes</span><span lang="ja">9.2 損失の地形</span></h2>
+  <p lang="en">Plot the loss $L(\theta)$ over parameter space and you get a landscape. Its shape decides how hard the search is. Here are the common features, each as a 2-D cartoon you can drop balls onto. The last one is the real (w, b) landscape of the rain model from Chapter 4.</p>
+  <p lang="ja">パラメータ空間の上に損失 $L(\theta)$ を描くと、地形ができます。探索の難しさはその形で決まります。よく現れる特徴を、ボールを落とせる2次元の模式図として並べました。最後のものは、第4章の雨のモデルの本物の (w, b) 地形です。</p>
+
+  <details class="predict">
+    <summary><span lang="en">On “twin valleys”, drop a ball exactly at the centre (0, 0). Where does it go?</span><span lang="ja">「双子の谷」で、ボールをちょうど中心 (0, 0) に落とすと、どこへ行くでしょうか？</span></summary>
+    <p lang="en">Nowhere. The centre is a <em>saddle</em>: the slope is zero, but it is a maximum along one direction. A tiny nudge sends the ball into one of two identical valleys.</p>
+    <p lang="ja">どこへも行きません。中心は<em>鞍点</em>です。傾きは0ですが、ある方向については最大点になっています。ほんの少し押すだけで、ボールは2つの同じ谷のどちらかへ転がり落ちます。</p>
+  </details>
+
+  <figure class="widget" data-widget="landscape-gallery">
+    <figcaption>
+      <span lang="en">Colour = loss (yellow is low). Click to roll a ball with plain gradient descent, or scatter 40 balls to see where random starts end up.</span>
+      <span lang="ja">色 = 損失（黄色ほど低い）。クリックすると、素朴な勾配降下法でボールを転がします。40個ばらまくと、ランダムな出発点からどこに行き着くかが分かります。</span>
+    </figcaption>
+  </figure>
+
+  <table class="w-table" lang="en">
+    <tr><th>feature</th><th>what goes wrong</th><th>fix (Chapter 10)</th></tr>
+    <tr><td>convex bowl</td><td>nothing: every start reaches the bottom</td><td>—</td></tr>
+    <tr><td>ravine</td><td>zig-zags across, crawls along</td><td>momentum, Adam, normalization</td></tr>
+    <tr><td>saddle</td><td>slope vanishes but it is not a minimum</td><td>noise (SGD), momentum</td></tr>
+    <tr><td>plateau</td><td>slope ≈ 0 far away, so no progress</td><td>initialization, better activations</td></tr>
+    <tr><td>golf hole</td><td>deep minimum has a tiny basin</td><td>many restarts, or reshape the problem</td></tr>
+  </table>
+  <table class="w-table" lang="ja">
+    <tr><th>特徴</th><th>何がうまくいかないか</th><th>対策（第10章）</th></tr>
+    <tr><td>凸なお椀</td><td>何も問題なし：どこから出発しても底に着く</td><td>—</td></tr>
+    <tr><td>峡谷</td><td>横方向にジグザグし、縦方向には這うように進む</td><td>モメンタム、Adam、正規化</td></tr>
+    <tr><td>鞍点</td><td>傾きは消えるが、最小点ではない</td><td>ノイズ（SGD）、モメンタム</td></tr>
+    <tr><td>台地</td><td>遠くでは傾き ≈ 0 で、進まない</td><td>初期化、よりよい活性化関数</td></tr>
+    <tr><td>ゴルフのホール</td><td>深い最小点の引き込み領域がごく小さい</td><td>何度もやり直す、問題の形を変える</td></tr>
+  </table>
+
+  <!-- 9.3 -->
+  <h2><span lang="en">9.3 Existence is not findability</span><span lang="ja">9.3 存在することと見つけられることは違う</span></h2>
+  <p lang="en">The golf-hole landscape makes Part III's caveat concrete. The best solution is right there, but almost every ball rolls into the wide, shallow basin. Universal approximation promised the hole exists. It never promised that gradients would lead us to it.</p>
+  <p lang="ja">ゴルフのホールの地形は、第III部の注意書きを具体的に示しています。最良の解はすぐそこにあるのに、ほとんどのボールは広くて浅いくぼみに転がり込みます。普遍近似が約束したのはホールが存在することだけで、勾配がそこへ導いてくれるとは一度も約束していません。</p>
+
+  <figure class="widget" data-widget="landscape-gallery" data-preset="golf">
+    <figcaption>
+      <span lang="en">The golf hole. Scatter balls a few times and count how often the deep hole (top right) is found.</span>
+      <span lang="ja">ゴルフのホール。ボールを何回かばらまき、深いホール（右上）が見つかる頻度を数えてみましょう。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box misconception">
+    <p lang="en">“Neural network losses are full of bad local minima.” In very high dimensions, most points with zero slope are saddles, not minima, because it is unlikely that <em>every</em> one of millions of directions curves upward. And many minima are equally good copies (9.1). The practical obstacles are more often ravines, plateaus, and saddles.</p>
+    <p lang="ja">「ニューラルネットワークの損失は悪い局所最小点だらけだ」というのは正確ではありません。とても高い次元では、傾きが0の点のほとんどは最小点ではなく鞍点です。何百万もある方向の<em>すべて</em>で上に曲がっている可能性は低いからです。また、多くの最小点は同じくらいよいコピーです（9.1）。実際の障害になるのは、峡谷・台地・鞍点であることのほうが多いのです。</p>
+  </div>
+
+  <!-- 9.4 -->
+  <h2><span lang="en">9.4 The third error term</span><span lang="ja">9.4 3つ目の誤差項</span></h2>
+  <p lang="en">Chapter 8 split error into approximation (is the truth in the family?) and estimation (does finite data pin it down?). Search adds a third: did we actually reach the best member we could have?</p>
+  <p lang="ja">第8章では、誤差を近似（真実は関数族の中にあるか？）と推定（有限のデータでそれが決まるか？）に分けました。探索は3つ目を加えます。到達できたはずの最良の要素に、実際にたどり着けたか？です。</p>
+  $$\underbrace{R(\tilde f)-R^\star}_{\text{total excess}}=\underbrace{\big(R(f_{\mathcal H})-R^\star\big)}_{\text{approximation}}+\underbrace{\big(R(\hat f)-R(f_{\mathcal H})\big)}_{\text{estimation}}+\underbrace{\big(R(\tilde f)-R(\hat f)\big)}_{\text{optimization}}$$
+  <p lang="en">Here $f_{\mathcal H}$ is the best function in the family, $\hat f$ the best one for our data, and $\tilde f$ the one our search actually returned.</p>
+  <p lang="ja">ここで $f_{\mathcal H}$ は関数族の中で最良の関数、$\hat f$ は手元のデータにとって最良の関数、$\tilde f$ は探索が実際に返した関数です。</p>
+
+  <figure class="widget" data-widget="three-errors">
+    <figcaption>
+      <span lang="en">A stylized error budget. Every remedy (bigger model, more data, longer training) shrinks one slice, sometimes at the cost of another.</span>
+      <span lang="ja">誤差の内訳の模式図。どの対策（大きなモデル、多くのデータ、長い学習）も1つの部分を縮めますが、ときには別の部分を代償にします。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box takeaway">
+    <p lang="en">Learning is a search over parameters for a low point of the loss. The landscape is shaped by the parametrization, and reaching the bottom is a separate problem from the bottom existing.</p>
+    <p lang="ja">学習とは、損失の低い点を求めてパラメータ上を探索することである。地形はパラメータ化によって形作られ、底にたどり着くことは、底が存在することとは別の問題である。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">Why can't we just evaluate the loss everywhere and pick the minimum?</span><span lang="ja">損失をあらゆる場所で評価して、最小のものを選べばよいのでは？</span></summary>
+    <p lang="en">With $d$ parameters and only 10 grid values each, there are $10^d$ points. For even a tiny network ($d=1000$) that is unimaginably many. We must use local information to decide where to look next.</p>
+    <p lang="ja">パラメータが $d$ 個あり、それぞれ10通りの値しか試さないとしても、点は $10^d$ 個あります。ごく小さなネットワーク（$d=1000$）でさえ、想像を絶する数です。次にどこを見るかは、局所的な情報を使って決めるしかありません。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">The slope under your feet is the one piece of local information that is cheap to get. How exactly should we use it? How big a step, in which direction, and with what memory? → <a href="ch10-gradients.html">Chapter 10</a></p>
+    <p lang="ja">足元の傾きは、安く手に入る唯一の局所的な情報です。それを正確にはどう使えばよいのでしょうか。歩幅はどれくらいで、どの方向へ、どんな記憶を持って進めばよいのでしょうか。→ <a href="ch10-gradients.html">第10章</a></p>
+  </div>
+</main>
+</body>
+</html>

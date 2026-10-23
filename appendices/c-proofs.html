@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C. Proof Sketches · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="appC">
+<main>
+  <p class="kicker"><span lang="en">Appendix C</span><span lang="ja">付録C</span></p>
+  <h1><span lang="en">Proof Sketches</span><span lang="ja">証明のスケッチ</span></h1>
+  <p lang="en">Short arguments for the main claims, in the order they appear. Open each one when you want it.</p>
+  <p lang="ja">本文の主な主張についての短い議論を、登場順に並べました。必要なときに開いてください。</p>
+
+  <h2 id="gibbs"><span lang="en">C.1 Gibbs' inequality: $D_{KL}(p\|q)\ge 0$ (Ch. 2)</span><span lang="ja">C.1 ギブスの不等式：$D_{KL}(p\|q)\ge 0$（第2章）</span></h2>
+  <p lang="en">Use $\ln t\le t-1$, with equality only at $t=1$. Sum over $y$ with $p(y)&gt;0$:</p>
+  <p lang="ja">$\ln t\le t-1$（等号は $t=1$ のときのみ）を使います。$p(y)&gt;0$ となる $y$ について和をとると：</p>
+  $$-D_{KL}(p\|q)=\sum_y p(y)\ln\frac{q(y)}{p(y)}\;\le\;\sum_y p(y)\Big(\frac{q(y)}{p(y)}-1\Big)=\sum_{y:\,p(y)>0} q(y)-1\;\le\;0.$$
+  <p lang="en">Equality requires $q(y)/p(y)=1$ wherever $p(y)&gt;0$, that is, $q=p$. ∎</p>
+  <p lang="ja">等号が成り立つには、$p(y)&gt;0$ となるすべての $y$ で $q(y)/p(y)=1$、つまり $q=p$ でなければなりません。∎</p>
+
+  <h2 id="mle"><span lang="en">C.2 Maximum likelihood = minimum cross-entropy = minimum KL (Ch. 2)</span><span lang="ja">C.2 最尤推定 = 交差エントロピー最小化 = KL 最小化（第2章）</span></h2>
+  <p lang="en">Let $\hat p=\frac1n\sum_i\delta_{y_i}$ be the empirical distribution. Then</p>
+  <p lang="ja">$\hat p=\frac1n\sum_i\delta_{y_i}$ を経験分布とします。すると</p>
+  $$-\frac1n\sum_i\log q(y_i)=-\sum_y\hat p(y)\log q(y)=H(\hat p,q)=H(\hat p)+D_{KL}(\hat p\|q).$$
+  <p lang="en">$H(\hat p)$ does not depend on $q$, so all three objectives have the same minimizer. As $n\to\infty$, the law of large numbers replaces $\hat p$ by $p$. ∎</p>
+  <p lang="ja">$H(\hat p)$ は $q$ によらないので、3つの目的関数の最小点は同じです。$n\to\infty$ とすると、大数の法則によって $\hat p$ が $p$ に置き換わります。∎</p>
+
+  <h2 id="mse"><span lang="en">C.3 Squared error is Gaussian log-loss (Ch. 2)</span><span lang="ja">C.3 二乗誤差はガウスの対数損失（第2章）</span></h2>
+  $$-\ln\mathcal N(y\mid\mu,\sigma^2)=\frac{(y-\mu)^2}{2\sigma^2}+\ln\sigma+\tfrac12\ln 2\pi.$$
+  <p lang="en">For fixed $\sigma$, minimizing the average over data in $\mu$ is minimizing $\frac1n\sum_i(y_i-\mu_i)^2$. ∎</p>
+  <p lang="ja">$\sigma$ を固定すれば、データ上の平均を $\mu$ について最小化することは、$\frac1n\sum_i(y_i-\mu_i)^2$ を最小化することと同じです。∎</p>
+
+  <h2 id="risk"><span lang="en">C.4 Risk decomposes into noise + KL (Ch. 4)</span><span lang="ja">C.4 リスクはノイズ + KL に分解できる（第4章）</span></h2>
+  $$R(\theta)=\mathbb E_x\,\mathbb E_{y\sim p(\cdot\mid x)}\big[-\log q_\theta(y\mid x)\big]=\mathbb E_x\Big[H\big(p(\cdot\mid x)\big)+D_{KL}\big(p(\cdot\mid x)\,\|\,q_\theta(\cdot\mid x)\big)\Big].$$
+  <p lang="en">Apply C.2 inside the expectation over $x$. The first term is the irreducible floor, and the second is zero only if $q_\theta(\cdot\mid x)=p(\cdot\mid x)$ for almost every $x$. ∎</p>
+  <p lang="ja">$x$ についての期待値の内側で C.2 を適用します。第1項は取り除けない床で、第2項が0になるのは、ほとんどすべての $x$ で $q_\theta(\cdot\mid x)=p(\cdot\mid x)$ のときだけです。∎</p>
+
+  <h2 id="ua"><span lang="en">C.5 Universal approximation in 1-D (Ch. 6)</span><span lang="ja">C.5 1次元の普遍近似（第6章）</span></h2>
+  <p lang="en">Let $g$ be continuous on $[a,b]$ and $\varepsilon&gt;0$. Since $g$ is uniformly continuous, choose knots $a=k_0&lt;\dots&lt;k_N=b$ so close that the piecewise-linear interpolant $\ell$ through $(k_j,g(k_j))$ satisfies $|g-\ell|&lt;\varepsilon$. Any such $\ell$ is exactly a one-hidden-layer ReLU network:</p>
+  <p lang="ja">$g$ を $[a,b]$ 上の連続関数、$\varepsilon&gt;0$ とします。$g$ は一様連続なので、結び目 $a=k_0&lt;\dots&lt;k_N=b$ を十分細かく取れば、$(k_j,g(k_j))$ を通る区分線形な補間 $\ell$ が $|g-\ell|&lt;\varepsilon$ を満たすようにできます。そのような $\ell$ は、ちょうど隠れ層1つの ReLU ネットワークになっています：</p>
+  $$\ell(x)=g(a)+\sum_{j=0}^{N-1}c_j\,\mathrm{ReLU}(x-k_j),\qquad c_j=s_j-s_{j-1},\ s_{-1}=0,$$
+  <p lang="en">where $s_j$ is the slope on $[k_j,k_{j+1}]$. In higher dimensions the same idea works with “bump” functions built from several units (or with Fourier/Stone–Weierstrass arguments for sigmoids). ∎</p>
+  <p lang="ja">ここで $s_j$ は $[k_j,k_{j+1}]$ での傾きです。高次元でも、複数のユニットで作った「こぶ」関数を使えば同じ考え方が通用します（sigmoid の場合はフーリエ解析や Stone–Weierstrass の議論を使います）。∎</p>
+
+  <h2 id="depth"><span lang="en">C.6 Depth doubles pieces (Ch. 8)</span><span lang="ja">C.6 深さは線分を倍にする（第8章）</span></h2>
+  <p lang="en">The tent $t(x)=2\,\mathrm{ReLU}(x)-4\,\mathrm{ReLU}(x-\tfrac12)$ maps each half of $[0,1]$ linearly onto all of $[0,1]$. So if $t^{\circ L}$ has $2^L$ linear pieces, each mapping onto $[0,1]$, then composing once more splits each piece in two, giving $2^{L+1}$. Meanwhile, a one-hidden-layer ReLU network with $m$ units on a 1-D input is linear between at most $m$ breakpoints, so it has at most $m+1$ pieces. Representing $t^{\circ L}$ exactly therefore needs $m\ge2^L-1$ units, against $2L$ for the deep version. ∎</p>
+  <p lang="ja">テント $t(x)=2\,\mathrm{ReLU}(x)-4\,\mathrm{ReLU}(x-\tfrac12)$ は、$[0,1]$ の左右の半分をそれぞれ $[0,1]$ 全体に線形に写します。したがって $t^{\circ L}$ が $2^L$ 本の線分を持ち、そのそれぞれが $[0,1]$ 全体に写るなら、もう一度合成すると各線分が2つに分かれ、$2^{L+1}$ 本になります。一方、1次元の入力に対する隠れ層1つ・$m$ ユニットの ReLU ネットワークは、最大 $m$ 個の折れ点の間でしか線形でないので、線分は最大 $m+1$ 本です。よって $t^{\circ L}$ を正確に表現するには $m\ge2^L-1$ ユニットが必要で、深いほうは $2L$ ユニットで済みます。∎</p>
+
+  <h2 id="biasvar"><span lang="en">C.7 Bias–variance decomposition (Ch. 8)</span><span lang="ja">C.7 バイアス–バリアンス分解（第8章）</span></h2>
+  <p lang="en">Let $y=f(x)+\varepsilon$ with $\mathbb E\varepsilon=0$ and $\operatorname{Var}\varepsilon=\sigma^2$, and let $\hat f_D$ be fitted on a random dataset $D$. At a fixed $x$, write $\bar f=\mathbb E_D\hat f_D(x)$. Then</p>
+  <p lang="ja">$y=f(x)+\varepsilon$（$\mathbb E\varepsilon=0$、$\operatorname{Var}\varepsilon=\sigma^2$）とし、$\hat f_D$ をランダムなデータセット $D$ で当てはめたものとします。$x$ を固定し、$\bar f=\mathbb E_D\hat f_D(x)$ と書くと</p>
+  $$\mathbb E_{D,\varepsilon}\big[(y-\hat f_D(x))^2\big]=\underbrace{\sigma^2}_{\text{noise}}+\underbrace{(f(x)-\bar f)^2}_{\text{bias}^2}+\underbrace{\mathbb E_D(\hat f_D(x)-\bar f)^2}_{\text{variance}}.$$
+  <p lang="en">Expand the square around $f(x)$ and $\bar f$. The cross terms vanish because $\mathbb E\varepsilon=0$ and $\mathbb E_D(\hat f_D-\bar f)=0$. ∎</p>
+  <p lang="ja">$f(x)$ と $\bar f$ のまわりで2乗を展開します。$\mathbb E\varepsilon=0$ かつ $\mathbb E_D(\hat f_D-\bar f)=0$ なので、交差項は消えます。∎</p>
+
+  <h2 id="gd"><span lang="en">C.8 Gradient descent on a quadratic (Ch. 10)</span><span lang="ja">C.8 2次関数上の勾配降下法（第10章）</span></h2>
+  <p lang="en">For $L(\theta)=\tfrac12\theta^\top A\theta$ with eigenvalues $0&lt;c_1\le\dots\le c_d$, the update is $\theta_{k+1}=(I-\eta A)\theta_k$. Along eigenvector $j$ the error is multiplied by $1-\eta c_j$ each step. It shrinks iff $|1-\eta c_j|&lt;1$, that is, $\eta&lt;2/c_j$. So the steepest direction caps $\eta&lt;2/c_d$, while the flattest one converges at rate $1-\eta c_1\ge1-2c_1/c_d$. Ravines (large $c_d/c_1$) are slow. ∎</p>
+  <p lang="ja">固有値が $0&lt;c_1\le\dots\le c_d$ である $L(\theta)=\tfrac12\theta^\top A\theta$ では、更新は $\theta_{k+1}=(I-\eta A)\theta_k$ です。固有ベクトル $j$ の方向では、誤差が1歩ごとに $1-\eta c_j$ 倍されます。これが縮むのは $|1-\eta c_j|&lt;1$、つまり $\eta&lt;2/c_j$ のときだけです。したがって最も急な方向が $\eta&lt;2/c_d$ という上限を課し、最も平らな方向は $1-\eta c_1\ge1-2c_1/c_d$ の割合でしか収束しません。峡谷（$c_d/c_1$ が大きい）が遅いのはこのためです。∎</p>
+
+  <h2 id="softmax-grad"><span lang="en">C.9 The softmax gradient is $q-y$ (Ch. 10)</span><span lang="ja">C.9 softmax の勾配は $q-y$（第10章）</span></h2>
+  <p lang="en">With $q_k=e^{z_k}/\sum_j e^{z_j}$ and one-hot $y$, the loss is $-\log q_c=-z_c+\log\sum_j e^{z_j}$. Differentiating:</p>
+  <p lang="ja">$q_k=e^{z_k}/\sum_j e^{z_j}$、$y$ を one-hot とすると、損失は $-\log q_c=-z_c+\log\sum_j e^{z_j}$ です。微分すると：</p>
+  $$\frac{\partial}{\partial z_k}\big(-\log q_c\big)=-[k=c]+\frac{e^{z_k}}{\sum_j e^{z_j}}=q_k-y_k.\quad\blacksquare$$
+  <p lang="en">At a stationary point of the average loss, $\sum_i(q_i-y_i)\,\nabla_\theta z_i=0$. For a linear last layer on features $h_i$, this says $\sum_i q_ih_i=\sum_iy_ih_i$: the model's expected feature totals match the data's (<strong>moment matching</strong>).</p>
+  <p lang="ja">平均損失の停留点では $\sum_i(q_i-y_i)\,\nabla_\theta z_i=0$ が成り立ちます。特徴 $h_i$ の上に線形の最終層があるなら、これは $\sum_i q_ih_i=\sum_iy_ih_i$、つまりモデルが期待する特徴の合計がデータのものと一致する、ということです（<strong>モーメント一致</strong>）。</p>
+
+  <h2 id="minnorm"><span lang="en">C.10 Gradient descent from zero finds the minimum-norm fit (Ch. 12)</span><span lang="ja">C.10 0から出発した勾配降下法は最小ノルムの当てはめを見つける（第12章）</span></h2>
+  <p lang="en">For least squares $\|Xw-y\|^2$ with more features than points, every gradient $2X^\top(Xw-y)$ lies in the row space of $X$. Starting from $w_0=0$, every iterate stays in that row space. The only interpolating solution in the row space is $w^\star=X^\top(XX^\top)^{-1}y$, which is the one with the smallest norm. ∎</p>
+  <p lang="ja">点より特徴のほうが多い最小二乗法 $\|Xw-y\|^2$ では、どの勾配 $2X^\top(Xw-y)$ も $X$ の行空間に入っています。$w_0=0$ から出発すれば、どの反復もその行空間にとどまります。行空間の中でデータを補間する解は $w^\star=X^\top(XX^\top)^{-1}y$ ただ1つで、これがノルム最小の解です。∎</p>
+
+  <h2 id="proper"><span lang="en">C.11 Log-loss and Brier are proper (Ch. 2, 12)</span><span lang="ja">C.11 対数損失と Brier は適切なスコア（第2章・第12章）</span></h2>
+  <p lang="en">If the truth is Bernoulli($p$) and you announce $r$: the expected log-loss is $H(p)+D_{KL}(p\|r)$, minimized only at $r=p$ by C.1. The expected Brier score is $p(1-r)^2+(1-p)r^2=(r-p)^2+p(1-p)$, also minimized only at $r=p$. ∎</p>
+  <p lang="ja">真実が Bernoulli($p$) で、あなたが $r$ を発表するとします。期待対数損失は $H(p)+D_{KL}(p\|r)$ で、C.1 より $r=p$ のときだけ最小になります。期待 Brier スコアは $p(1-r)^2+(1-p)r^2=(r-p)^2+p(1-p)$ で、これも $r=p$ のときだけ最小になります。∎</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11. Gradient-Free Search · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch11">
+<main>
+  <p class="kicker"><span lang="en">Part IV · Chapter 11</span><span lang="ja">第IV部・第11章</span></p>
+  <h1><span lang="en">Gradient-Free Search</span><span lang="ja">勾配を使わない探索</span></h1>
+  <p class="question"><span lang="en">What else can we use, and when?</span><span lang="ja">他に何が使えて、いつ使うべきか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">Suppose you can't feel the slope at all. You can only ask “how high is this spot?”, and each answer costs you. Maybe the score is a win/loss count, maybe it comes from a simulator, maybe it depends on the shape of the network itself. How would you search?</p>
+    <p lang="ja">傾きがまったく感じられないとします。できるのは「この地点の高さは？」と尋ねることだけで、答えを聞くたびにコストがかかります。スコアは勝ち負けの回数かもしれないし、シミュレータから出てくるのかもしれないし、ネットワークの形そのものに依存するのかもしれません。あなたならどう探索しますか。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>Watch populations search a landscape using loss values only.</li>
+    <li>Evolve network <em>structure</em> by hand.</li>
+    <li>Use a probabilistic model of the objective to choose evaluations wisely.</li>
+    <li>Know when gradient-free methods are worth it.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>集団が損失の値だけを使って地形を探索する様子を見る。</li>
+    <li>ネットワークの<em>構造</em>を手で進化させる。</li>
+    <li>目的関数の確率モデルを使って、評価する点を賢く選ぶ。</li>
+    <li>勾配を使わない方法が割に合うのはいつかを知る。</li>
+  </ul>
+
+  <!-- 11.1 -->
+  <h2><span lang="en">11.1 Populations instead of a single walker</span><span lang="ja">11.1 1人の歩き手ではなく集団で</span></h2>
+  <p lang="en">Without a slope, one walker is nearly blind. A <em>crowd</em> is not: compare everyone's height, keep the best, and make new candidates near them. <strong>Genetic algorithms</strong> do this with selection, crossover, and mutation. <strong>Evolution strategies</strong> do it with a single search distribution that drifts and shrinks toward good regions.</p>
+  <p lang="ja">傾きがなければ、1人の歩き手はほとんど何も見えません。しかし<em>集団</em>なら話は別です。全員の高さを比べ、最もよいものを残し、その近くに新しい候補を作ればよいのです。<strong>遺伝的アルゴリズム</strong>はこれを選択・交叉・突然変異で行い、<strong>進化戦略</strong>は、よい領域へ漂いながら縮んでいく1つの探索分布で行います。</p>
+
+  <figure class="widget" data-widget="evolution-playback">
+    <figcaption>
+      <span lang="en">Both methods on the real rain landscape (w, b) from Chapter 4. Each generation was precomputed with <code>tools/generate_data.py</code>. ★ = the true parameters.</span>
+      <span lang="ja">第4章の本物の雨の地形 (w, b) で2つの手法を動かします。各世代は <code>tools/generate_data.py</code> で事前計算しました。★ = 真のパラメータ。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en"><strong>Evolution strategy</strong> (simplified): sample $\theta_i\sim\mathcal N(m,\operatorname{diag}(s^2))$, evaluate $L(\theta_i)$, set $m$ to the mean of the best few, and shrink $s$. Averaged over the samples, this behaves like a gradient step on a <em>smoothed</em> loss, so it works even where the true loss has no derivative.</p>
+    <p lang="ja"><strong>進化戦略</strong>（簡略版）：$\theta_i\sim\mathcal N(m,\operatorname{diag}(s^2))$ をサンプルし、$L(\theta_i)$ を評価し、上位いくつかの平均を新しい $m$ にして、$s$ を縮めます。サンプル全体で平均すると、これは<em>平滑化された</em>損失での勾配ステップのように振る舞うので、本当の損失が微分できない場所でも働きます。</p>
+  </div>
+
+  <!-- 11.2 -->
+  <h2><span lang="en">11.2 Evolving structure: neuroevolution</span><span lang="ja">11.2 構造を進化させる：神経進化</span></h2>
+  <p lang="en">Gradients can tune weights, but they can't tell you to <em>add a neuron</em>, because that is a discrete jump. Evolution can. Methods like <strong>NEAT</strong> mutate both weights and topology, and they protect new structures long enough for their weights to improve.</p>
+  <p lang="ja">勾配で重みは調整できますが、「<em>ニューロンを1つ足せ</em>」とは教えてくれません。それは離散的な跳躍だからです。進化ならそれができます。<strong>NEAT</strong> のような手法は重みとトポロジーの両方を突然変異させ、新しい構造をその重みがよくなるまでしばらく保護します。</p>
+
+  <details class="predict">
+    <summary><span lang="en">The starting network has no hidden nodes. Can it already fit the rain data well?</span><span lang="ja">最初のネットワークには隠れノードがありません。この状態でも雨のデータにうまく当てはまるでしょうか？</span></summary>
+    <p lang="en">Yes, surprisingly well. Its output is $\sigma(c+d\,h)$, which is exactly the true model's family. Extra nodes add flexibility the data doesn't need. Watch whether evolution keeps them.</p>
+    <p lang="ja">意外なほどうまく当てはまります。出力は $\sigma(c+d\,h)$ で、これは真のモデルとまったく同じ関数族だからです。ノードを足すと、データが必要としない柔軟さが加わります。進化がそれを残すかどうか見てみましょう。</p>
+  </details>
+
+  <figure class="widget" data-widget="neat-sandbox">
+    <figcaption>
+      <span lang="en">Four mutated children per generation. You choose who survives.</span>
+      <span lang="ja">1世代につき4つの突然変異した子。誰が生き残るかはあなたが選びます。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 11.3 -->
+  <h2><span lang="en">11.3 When every evaluation is expensive: Bayesian optimization</span><span lang="ja">11.3 評価のたびに高くつくとき：ベイズ最適化</span></h2>
+  <p lang="en">Choosing a learning rate or a network size means a whole training run per evaluation. Here we can't afford populations. <strong>Bayesian optimization</strong> applies the idea of this book to search itself. It keeps a <em>probability distribution over the unknown loss curve</em> (a Gaussian process), updates it after every evaluation, and picks the next point where a low value is most plausible.</p>
+  <p lang="ja">学習率やネットワークの大きさを選ぶ場合、1回の評価が学習1回分まるごとになります。集団を使う余裕はありません。<strong>ベイズ最適化</strong>は、この本の考え方を探索そのものに当てはめます。<em>未知の損失曲線についての確率分布</em>（ガウス過程）を持ち、評価のたびにそれを更新し、低い値が出る見込みが最も高い点を次に選ぶのです。</p>
+
+  <figure class="widget" data-widget="bayes-opt">
+    <figcaption>
+      <span lang="en">Same budget, same start. Left: a GP-guided search. Right: uniform random picks.</span>
+      <span lang="ja">予算も出発点も同じ。左：GP に導かれた探索。右：一様ランダムに選ぶ探索。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 11.4 -->
+  <h2><span lang="en">11.4 Choosing a search method</span><span lang="ja">11.4 探索手法の選び方</span></h2>
+  <table class="w-table" lang="en">
+    <tr><th></th><th>gradient descent</th><th>evolution (GA/ES)</th><th>Bayesian opt.</th></tr>
+    <tr><td>needs derivatives</td><td>yes</td><td>no</td><td>no</td></tr>
+    <tr><td>number of parameters</td><td>billions</td><td>up to ~millions (ES)</td><td>~1–20</td></tr>
+    <tr><td>evaluations needed</td><td>few per step</td><td>many</td><td>very few</td></tr>
+    <tr><td>discrete choices (structure)</td><td>no</td><td>yes</td><td>yes</td></tr>
+    <tr><td>parallelism</td><td>within a step</td><td>embarrassingly parallel</td><td>limited</td></tr>
+  </table>
+  <table class="w-table" lang="ja">
+    <tr><th></th><th>勾配降下法</th><th>進化（GA/ES）</th><th>ベイズ最適化</th></tr>
+    <tr><td>微分が必要か</td><td>必要</td><td>不要</td><td>不要</td></tr>
+    <tr><td>パラメータ数</td><td>数十億</td><td>〜数百万まで（ES）</td><td>〜1〜20</td></tr>
+    <tr><td>必要な評価回数</td><td>1歩あたり少し</td><td>多い</td><td>とても少ない</td></tr>
+    <tr><td>離散的な選択（構造）</td><td>扱えない</td><td>扱える</td><td>扱える</td></tr>
+    <tr><td>並列性</td><td>1歩の中で</td><td>完全に並列にできる</td><td>限られる</td></tr>
+  </table>
+  <p lang="en">In practice the methods are layered. Bayesian optimization or evolution searches over architectures and hyperparameters (outer loop), and gradient descent trains the weights of each candidate (inner loop).</p>
+  <p lang="ja">実際には、これらの手法は重ねて使われます。ベイズ最適化や進化がアーキテクチャやハイパーパラメータを探索し（外側のループ）、勾配降下法が各候補の重みを学習します（内側のループ）。</p>
+
+  <div class="box misconception">
+    <p lang="en">“Evolution is a worse version of gradient descent.” For millions of smooth weights, gradients win by orders of magnitude. But for discrete structure, non-differentiable rewards, or a handful of very expensive choices, gradients are not even available.</p>
+    <p lang="ja">「進化は勾配降下法の劣化版だ」というのは誤りです。数百万の滑らかな重みが相手なら、勾配が桁違いに勝ちます。しかし離散的な構造、微分できない報酬、ごく少数の非常に高価な選択が相手のときは、そもそも勾配が使えません。</p>
+  </div>
+
+  <div class="box takeaway">
+    <p lang="en">Gradients are a cheap, local hint. Without them, compare many candidates (evolution) or model the objective itself (Bayesian optimization). Either way, you trade efficiency for generality.</p>
+    <p lang="ja">勾配は安くて局所的なヒントである。それがなければ、多くの候補を比べる（進化）か、目的関数そのものをモデル化する（ベイズ最適化）。どちらにせよ、効率と引き換えに汎用性を得ている。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">Why would you use Bayesian optimization to pick the learning rate, but gradient descent to pick the weights?</span><span lang="ja">学習率を選ぶのにはベイズ最適化を使い、重みを選ぶのには勾配降下法を使うのはなぜでしょうか？</span></summary>
+    <p lang="en">The learning rate is a single number, each evaluation is a full training run, and there is no gradient with respect to it. The weights are millions of numbers with cheap, exact gradients.</p>
+    <p lang="ja">学習率はたった1つの数で、評価は1回ごとに学習まるごとであり、それについての勾配もありません。重みは数百万の数で、安くて正確な勾配があります。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">Whatever search we use, it minimizes loss on the <em>training</em> days. The real question is about tomorrow. When does a learned distribution stay correct on new data, and how do we check that its probabilities are honest? → <a href="ch12-generalization.html">Chapter 12</a></p>
+    <p lang="ja">どんな探索を使っても、最小化しているのは<em>訓練</em>に使った日々での損失です。しかし本当の問いは明日についてです。学習した分布はいつ新しいデータでも正しいままなのか、そしてその確率が正直かどうかをどう確かめればよいのでしょうか。→ <a href="ch12-generalization.html">第12章</a></p>
+  </div>
+</main>
+</body>
+</html>

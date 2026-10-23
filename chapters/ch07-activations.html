@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7. Representational Capacity I: Activations · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch07">
+<main>
+  <p class="kicker"><span lang="en">Part III · Chapter 7</span><span lang="ja">第III部・第7章</span></p>
+  <h1><span lang="en">Representational Capacity I: Activations</span><span lang="ja">表現力 I：活性化関数</span></h1>
+  <p class="question"><span lang="en">What does the nonlinearity contribute?</span><span lang="ja">非線形性は何をもたらすのか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">Take a network with ten layers and thousands of weights, and delete one ingredient: the activation function. What can it represent now?</p>
+    <p lang="ja">10層で数千の重みを持つネットワークから、材料を1つだけ取り除きます。活性化関数です。このネットワークは、いったい何を表現できるでしょうか。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>Prove to yourself that linear layers collapse.</li>
+    <li>Compare common activations by shape, slope, and saturation.</li>
+    <li>See ReLU networks as cutting input space into linear regions.</li>
+    <li>Understand why slopes below or above 1 make gradients vanish or explode with depth.</li>
+    <li>Read output activations as link functions that pick the noise model.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>線形の層がつぶれてしまうことを自分で確かめる。</li>
+    <li>代表的な活性化関数を、形・傾き・飽和で比べる。</li>
+    <li>ReLU ネットワークを、入力空間を線形な領域に切り分けるものとして見る。</li>
+    <li>傾きが1より小さい（大きい）と、深さとともに勾配が消える（爆発する）理由を理解する。</li>
+    <li>出力の活性化関数を、ノイズモデルを選ぶリンク関数として読む。</li>
+  </ul>
+
+  <!-- 7.1 -->
+  <h2><span lang="en">7.1 The collapse of linear networks</span><span lang="ja">7.1 線形ネットワークの崩壊</span></h2>
+
+  <details class="predict">
+    <summary><span lang="en">With σ = none, what shape will a 10-layer network draw?</span><span lang="ja">σ = なし のとき、10層のネットワークはどんな形を描くでしょうか？</span></summary>
+    <p lang="en">A straight line, every time. Press “New random weights” as often as you like.</p>
+    <p lang="ja">毎回、直線です。「重みを引き直す」を何度押しても同じです。</p>
+  </details>
+
+  <figure class="widget" data-widget="linear-collapse">
+    <figcaption>
+      <span lang="en">A random network with 1 input, layers of width 6, and 1 output. Switch the activation and change the depth.</span>
+      <span lang="ja">入力1つ、幅6の層、出力1つのランダムなネットワーク。活性化関数を切り替えたり、深さを変えたりしてみましょう。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$W_2(W_1x+b_1)+b_2=\underbrace{(W_2W_1)}_{W}x+\underbrace{(W_2b_1+b_2)}_{b}.$$
+    <p lang="en">Composing affine maps gives an affine map. Without a nonlinearity between them, depth adds parameters but no expressive power.</p>
+    <p lang="ja">アフィン写像を合成しても、またアフィン写像になります。間に非線形性がなければ、深さはパラメータを増やすだけで、表現力は増やしません。</p>
+  </div>
+
+  <!-- 7.2 -->
+  <h2><span lang="en">7.2 A gallery of activations</span><span lang="ja">7.2 活性化関数のギャラリー</span></h2>
+  <p lang="en">Any non-polynomial bend is enough for universal approximation (Chapter 6). In practice, though, the shape matters for <em>learning</em>, because the slope $\sigma'(z)$ is the valve through which the learning signal flows.</p>
+  <p lang="ja">普遍近似のためには、多項式でない曲がりであれば何でも十分です（第6章）。しかし実際には、形は<em>学習</em>に効いてきます。傾き $\sigma'(z)$ が、学習の信号が流れる弁だからです。</p>
+
+  <figure class="widget" data-widget="activation-gallery">
+    <figcaption>
+      <span lang="en">Left: the activation. Right: its slope. Red bands mark where the slope is nearly zero (saturation).</span>
+      <span lang="ja">左：活性化関数。右：その傾き。赤い帯は、傾きがほぼ0になる場所（飽和）です。</span>
+    </figcaption>
+  </figure>
+
+  <table class="w-table" lang="en">
+    <tr><th>activation</th><th>strength</th><th>weakness</th></tr>
+    <tr><td>sigmoid</td><td>outputs a probability</td><td>saturates on both sides, slope ≤ 0.25</td></tr>
+    <tr><td>tanh</td><td>zero-centred</td><td>saturates on both sides</td></tr>
+    <tr><td>ReLU</td><td>slope exactly 1 when active; cheap</td><td>units can “die” (always z &lt; 0)</td></tr>
+    <tr><td>GELU / softplus</td><td>smooth versions of ReLU</td><td>slightly more computation</td></tr>
+  </table>
+  <table class="w-table" lang="ja">
+    <tr><th>活性化関数</th><th>長所</th><th>短所</th></tr>
+    <tr><td>sigmoid</td><td>確率を出力できる</td><td>両側で飽和し、傾きは0.25以下</td></tr>
+    <tr><td>tanh</td><td>0を中心とする</td><td>両側で飽和する</td></tr>
+    <tr><td>ReLU</td><td>オンのとき傾きがちょうど1、計算が安い</td><td>ユニットが「死ぬ」ことがある（常に z &lt; 0）</td></tr>
+    <tr><td>GELU / softplus</td><td>ReLU の滑らかな版</td><td>計算が少し増える</td></tr>
+  </table>
+
+  <!-- 7.3 -->
+  <h2><span lang="en">7.3 Piecewise-linear regions</span><span lang="ja">7.3 区分線形な領域</span></h2>
+  <p lang="en">A ReLU network is linear on each region where the on/off pattern of its units doesn't change. So it is a patchwork of flat tiles, and the number of tiles is a direct measure of how complicated a shape it can draw.</p>
+  <p lang="ja">ReLU ネットワークは、ユニットのオン/オフのパターンが変わらない各領域の中では線形です。つまり平らなタイルの継ぎはぎであり、タイルの数は、描ける形の複雑さを直接測る尺度になります。</p>
+
+  <details class="predict">
+    <summary><span lang="en">With one layer of 4 units in a 2-D input, what is the most regions you could get?</span><span lang="ja">2次元の入力で、4ユニットの層が1つのとき、領域は最大でいくつできるでしょうか？</span></summary>
+    <p lang="en">11. Four lines in general position cut the plane into $1+4+\binom42=11$ pieces. Random weights often give fewer, because some lines cross outside the window.</p>
+    <p lang="ja">11個です。一般の位置にある4本の直線は、平面を $1+4+\binom42=11$ 個に切り分けます。ランダムな重みでは、いくつかの線が表示範囲の外で交わるので、たいていそれより少なくなります。</p>
+  </details>
+
+  <figure class="widget" data-widget="relu-regions">
+    <figcaption>
+      <span lang="en">The input square $[-2,2]^2$ coloured by activation pattern. Compare one wide layer with several narrow layers that use the same number of units.</span>
+      <span lang="ja">入力の正方形 $[-2,2]^2$ を、活性化パターンごとに色分けしています。ユニット数が同じ「広い層1つ」と「細い層いくつか」を比べてみましょう。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 7.4 -->
+  <h2><span lang="en">7.4 Saturation and gradient flow</span><span lang="ja">7.4 飽和と勾配の流れ</span></h2>
+  <p lang="en">Learning sends a signal backward from the loss to every weight (Chapter 10). Each layer multiplies it by roughly $w\cdot\sigma'(z)$. Thirty layers means thirty multiplications, so a factor of 0.5 per layer leaves $0.5^{30}\approx10^{-9}$.</p>
+  <p lang="ja">学習では、損失からすべての重みへ信号を後ろ向きに送ります（第10章）。各層はその信号をおよそ $w\cdot\sigma'(z)$ 倍します。30層あれば30回掛けることになるので、1層あたり0.5倍なら $0.5^{30}\approx10^{-9}$ しか残りません。</p>
+
+  <figure class="widget" data-widget="saturation-flow">
+    <figcaption>
+      <span lang="en">The real backpropagated gradient norm at each layer of a random width-16 network. Try sigmoid at depth 30, then ReLU, then change the weight scale.</span>
+      <span lang="ja">幅16のランダムなネットワークで、実際に逆伝播させた勾配のノルムを層ごとに示しています。深さ30で sigmoid を試し、次に ReLU を試し、それから重みのスケールを変えてみましょう。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box misconception">
+    <p lang="en">“Deep networks don't train because they are too big.” Size isn't the issue. Signal propagation is. With activations and initial weight scales chosen so that $w\cdot\sigma'\approx1$ on average, very deep networks train fine (Chapter 10).</p>
+    <p lang="ja">「深いネットワークが学習できないのは大きすぎるからだ」というのは誤りです。問題は大きさではなく、信号の伝わり方です。平均して $w\cdot\sigma'\approx1$ となるように活性化関数と重みの初期スケールを選べば、とても深いネットワークでも問題なく学習できます（第10章）。</p>
+  </div>
+
+  <!-- 7.5 -->
+  <h2><span lang="en">7.5 Output activations are link functions</span><span lang="ja">7.5 出力の活性化関数はリンク関数</span></h2>
+  <p lang="en">The last activation plays a different role from the hidden ones. It is the link $g$ from Chapter 4, which turns the network's unconstrained numbers into legal knobs of a distribution.</p>
+  <p lang="ja">最後の活性化関数は、隠れ層のものとは役割が違います。これは第4章のリンク $g$ で、ネットワークの制約のない数を、分布の正しいつまみに変えます。</p>
+
+  <figure class="widget" data-widget="link-functions">
+    <figcaption>
+      <span lang="en">The same three logits, three different families.</span>
+      <span lang="ja">同じ3つのロジットから、3つの異なる分布族を作ります。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">In the <strong>exponential-family</strong> view, each family has a natural link. Bernoulli ↔ sigmoid, categorical ↔ softmax, Gaussian mean ↔ identity, positive scale ↔ exp or softplus. With the natural link, the gradient of the log-loss with respect to the logits is simply $q-y$ (Chapter 10).</p>
+    <p lang="ja"><strong>指数型分布族</strong>の見方では、各分布族に自然なリンクがあります。Bernoulli ↔ sigmoid、カテゴリカル ↔ softmax、ガウスの平均 ↔ 恒等写像、正のスケール ↔ exp または softplus です。自然なリンクを使うと、ロジットについての対数損失の勾配は単に $q-y$ になります（第10章）。</p>
+  </div>
+
+  <div class="box takeaway">
+    <p lang="en">Hidden activations bend space so that depth means something, and their slopes decide whether learning signals survive. The output activation decides which family of distributions the network names.</p>
+    <p lang="ja">隠れ層の活性化関数は空間を曲げて深さに意味を与え、その傾きが学習の信号が生き残るかどうかを決める。出力の活性化関数は、ネットワークが名指す分布の族を決める。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">Why is softmax, not ReLU, used on the output of a 3-way classifier?</span><span lang="ja">3クラス分類器の出力に、ReLU ではなく softmax を使うのはなぜでしょうか？</span></summary>
+    <p lang="en">The outputs must be positive and sum to 1 to name a categorical distribution. ReLU gives non-negative numbers that can be all zero and don't sum to 1. Softmax always gives a valid probability vector.</p>
+    <p lang="ja">カテゴリカル分布を名指すには、出力が正で合計1でなければならないからです。ReLU の出力は非負ですが、すべて0になることもあり、合計も1になりません。softmax は常に正しい確率ベクトルを返します。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">We have the parts: layers and bends. Now, does it matter how we wire them? With the same number of units, is it better to go deep or wide? → <a href="ch08-topology.html">Chapter 8</a></p>
+    <p lang="ja">部品（層と曲がり）はそろいました。では、そのつなぎ方は重要でしょうか。ユニット数が同じなら、深くするのと広くするのでは、どちらがよいのでしょうか。→ <a href="ch08-topology.html">第8章</a></p>
+  </div>
+</main>
+</body>
+</html>

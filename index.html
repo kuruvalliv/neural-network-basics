@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en" data-root=".">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="assets/js/book.js"></script>
+<script type="module" src="assets/js/toc.js"></script>
+</head>
+<body data-page="index">
+<main>
+  <p class="kicker"><span lang="en">An interactive book</span><span lang="ja">インタラクティブな本</span></p>
+  <h1>
+    <span lang="en">Functions That Learn Functions</span>
+    <span lang="ja">関数を学ぶ関数</span>
+  </h1>
+  <p class="question">
+    <span lang="en">Probability, representation, and search in neural networks.</span>
+    <span lang="ja">ニューラルネットワークにおける確率・表現・探索</span>
+  </p>
+
+  <p lang="en">This book explains how a neural network learns a <em>probability distribution</em>, rather than a single answer. Every idea first appears as a picture you can play with. A name and a formula come only after that.</p>
+  <p lang="ja">この本では、ニューラルネットワークが一つの答えではなく<em>確率分布</em>をどう学ぶのかを説明します。どの考え方も、まず手で動かせる図として登場します。名前や数式が出てくるのはその後です。</p>
+
+  <h2><span lang="en">Two running examples</span><span lang="ja">全章を通して使う2つの例</span></h2>
+  <ul>
+    <li lang="en"><strong>Rain vs. no rain.</strong> Given today's humidity $h\in[0,1]$, will it rain? The true chance is $p(\text{rain}\mid h)=\sigma(12h-7.2)$.</li>
+    <li lang="ja"><strong>雨か晴れか。</strong>今日の湿度 $h\in[0,1]$ から、雨が降るかを予測します。真の確率は $p(\text{雨}\mid h)=\sigma(12h-7.2)$ です。</li>
+    <li lang="en"><strong>Noisy curve.</strong> $y=\sin x+\varepsilon$ with $\varepsilon\sim\mathcal N(0,0.3^2)$.</li>
+    <li lang="ja"><strong>ノイズのある曲線。</strong>$y=\sin x+\varepsilon$、ただし $\varepsilon\sim\mathcal N(0,0.3^2)$ です。</li>
+  </ul>
+
+  <h2><span lang="en">How each chapter works</span><span lang="ja">各章の進め方</span></h2>
+  <ol>
+    <li lang="en"><strong>Puzzle:</strong> a question about the running examples.</li>
+    <li lang="ja"><strong>パズル：</strong>例題についての問いから始めます。</li>
+    <li lang="en"><strong>Predict:</strong> guess the answer before touching anything.</li>
+    <li lang="ja"><strong>予想：</strong>図を触る前に、答えを予想します。</li>
+    <li lang="en"><strong>Play:</strong> drag, slide, and watch what changes.</li>
+    <li lang="ja"><strong>操作：</strong>ドラッグやスライダーで、何が変わるかを観察します。</li>
+    <li lang="en"><strong>Name it:</strong> the formal definition, now that you have seen it.</li>
+    <li lang="ja"><strong>名前をつける：</strong>実際に見たあとで、正式な定義を与えます。</li>
+    <li lang="en"><strong>Check and bridge:</strong> a short check, then the question that opens the next chapter.</li>
+    <li lang="ja"><strong>確認と橋渡し：</strong>短い確認問題を解き、次の章につながる問いを示します。</li>
+  </ol>
+
+  <p lang="en">Colours mean the same thing everywhere:</p>
+  <p lang="ja">色の意味は全章で共通です。</p>
+  <div class="palette">
+    <span style="--c: var(--p)"><span lang="en">truth $p$</span><span lang="ja">真の分布 $p$</span></span>
+    <span style="--c: var(--q)"><span lang="en">model $q$</span><span lang="ja">モデル $q$</span></span>
+    <span style="--c: var(--data)"><span lang="en">data</span><span lang="ja">データ</span></span>
+    <span style="--c: var(--loss)"><span lang="en">loss / surprise</span><span lang="ja">損失・驚き</span></span>
+  </div>
+
+  <h2><span lang="en">Contents</span><span lang="ja">目次</span></h2>
+  <div id="toc"></div>
+</main>
+</body>
+</html>

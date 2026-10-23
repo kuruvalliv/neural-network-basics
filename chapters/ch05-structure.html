@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5. How a Function's Inputs and Outputs Relate · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch05">
+<main>
+  <p class="kicker"><span lang="en">Part II · Chapter 5</span><span lang="ja">第II部・第5章</span></p>
+  <h1><span lang="en">How a Function's Inputs and Outputs Relate</span><span lang="ja">関数の入力と出力の関係</span></h1>
+  <p class="question"><span lang="en">What structure connects $x$ and $y$, and how can we exploit it?</span><span lang="ja">$x$ と $y$ をつなぐ構造は何か、どう活かせるか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">Shift a photo of a cat two pixels to the left. Every pixel value changes, but it is still a cat. A model that has to <em>learn</em> this separately for every possible shift needs far more data than one that knows it from the start. What other facts like this are hiding in our data?</p>
+    <p lang="ja">猫の写真を2ピクセル左にずらすと、ピクセルの値はすべて変わりますが、猫のままです。ずらし方ごとにこれを<em>学ば</em>なければならないモデルは、最初からそれを知っているモデルよりはるかに多くのデータを必要とします。私たちのデータには、他にどんな事実が隠れているでしょうか。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>Use conditional independence to cut down how much must be learned.</li>
+    <li>Recognize when high-dimensional inputs really live on a low-dimensional manifold.</li>
+    <li>Tell invariance from equivariance.</li>
+    <li>See composition and smoothness as assumptions about the target function.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>条件付き独立を使って、学ぶべき量を減らす。</li>
+    <li>高次元の入力が、実は低次元の多様体の上にある場合に気づく。</li>
+    <li>不変性と同変性を区別する。</li>
+    <li>合成と滑らかさを、目標とする関数についての仮定として見る。</li>
+  </ul>
+
+  <!-- 5.1 -->
+  <h2><span lang="en">5.1 Dependence and conditional independence</span><span lang="ja">5.1 依存と条件付き独立</span></h2>
+  <p lang="en">Add temperature $T$ to the rain example. Warm air holds more water, so temperature affects humidity $H$, and humidity affects rain $R$. Does temperature affect rain <em>directly</em>, or only through humidity? The answer changes how many numbers we must learn.</p>
+  <p lang="ja">雨の例に気温 $T$ を加えます。暖かい空気はより多くの水分を含めるので、気温は湿度 $H$ に影響し、湿度は雨 $R$ に影響します。では、気温は雨に<em>直接</em>影響するのでしょうか、それとも湿度を通してだけでしょうか。その答えによって、学ぶべき数の個数が変わります。</p>
+
+  <details class="predict">
+    <summary><span lang="en">A full table over (T, H, R) has 3 × 3 × 2 = 18 cells, so 17 free numbers. If you delete the arrow T → R, how many remain?</span><span lang="ja">(T, H, R) の表をまるごと持つと 3 × 3 × 2 = 18 マス、自由な数は17個です。矢印 T → R を消すと、何個残るでしょうか？</span></summary>
+    <p lang="en">11. The rain table now needs one number per humidity level (3) instead of one per (temperature, humidity) pair (9).</p>
+    <p lang="ja">11個です。雨の表は、（気温, 湿度）の組ごとに1つ（9個）ではなく、湿度の段階ごとに1つ（3個）で済むようになります。</p>
+  </details>
+
+  <figure class="widget" data-widget="graph-factorization">
+    <figcaption>
+      <span lang="en">A graphical model: arrows say who directly influences whom. Each missing arrow is an assumption, and each assumption saves parameters.</span>
+      <span lang="ja">グラフィカルモデル：矢印は、誰が誰に直接影響するかを表します。矢印が1本ないことは仮定を1つ置くことであり、仮定を置くたびにパラメータが減ります。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">$R$ is <strong>conditionally independent</strong> of $T$ given $H$, written $R\perp T\mid H$, if $p(r\mid h,t)=p(r\mid h)$. Then the joint distribution <strong>factorizes</strong>:</p>
+    <p lang="ja">$p(r\mid h,t)=p(r\mid h)$ が成り立つとき、$H$ のもとで $R$ は $T$ と<strong>条件付き独立</strong>であるといい、$R\perp T\mid H$ と書きます。このとき同時分布は<strong>因数分解</strong>できます：</p>
+    $$p(t,h,r)=p(t)\,p(h\mid t)\,p(r\mid h).$$
+  </div>
+
+  <!-- 5.2 -->
+  <h2><span lang="en">5.2 Dimension, redundancy, and manifolds</span><span lang="ja">5.2 次元・冗長性・多様体</span></h2>
+  <p lang="en">A 100×100 photo is a point in a 10,000-dimensional space. Almost every point in that space is static noise, though, and real photos occupy a thin, curved sliver of it. The same is true in miniature below: two coordinates, but only one really matters.</p>
+  <p lang="ja">100×100 の写真は、10,000次元の空間の1点です。しかし、その空間のほとんどの点はただの砂嵐で、本物の写真が占めるのは、細く曲がったごく一部だけです。下の図はその小型版です。座標は2つありますが、本当に重要なのは1つだけです。</p>
+
+  <figure class="widget" data-widget="manifold-unroll">
+    <figcaption>
+      <span lang="en">Points lie near a spiral strip. Their colour (think: the label) depends only on the position along the strip. Unrolling reveals the 1-D coordinate.</span>
+      <span lang="ja">点はらせん状の帯の近くにあります。色（ラベルだと思ってください）は、帯に沿った位置だけで決まります。広げると、1次元の座標が現れます。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">The <strong>manifold hypothesis</strong>: real high-dimensional data concentrate near a low-dimensional surface (a manifold), and the target $p(y\mid x)$ varies mainly <em>along</em> it. Straight-line distance in the input space can then be misleading.</p>
+    <p lang="ja"><strong>多様体仮説</strong>：現実の高次元データは低次元の面（多様体）の近くに集まっており、目標の $p(y\mid x)$ は主にその面に<em>沿って</em>変化する、という仮説です。このとき、入力空間での直線距離は当てにならないことがあります。</p>
+  </div>
+
+  <!-- 5.3 -->
+  <h2><span lang="en">5.3 Invariance and equivariance</span><span lang="ja">5.3 不変性と同変性</span></h2>
+  <p lang="en">Some questions about an input don't care where it is or which way it faces (“is it a triangle?”). Others care in a predictable way (“where is its centre?”). These two kinds of symmetry are the most valuable structure a model can be given.</p>
+  <p lang="ja">入力についての問いの中には、それがどこにあるか、どちらを向いているかを気にしないものがあります（「三角形か？」）。一方、予測できる形で気にするものもあります（「重心はどこか？」）。この2種類の対称性は、モデルに与えられる構造の中で最も価値のあるものです。</p>
+
+  <figure class="widget" data-widget="invariance-demo">
+    <figcaption>
+      <span lang="en">Transform the triangle. Invariant outputs stay put, equivariant outputs move along with it, and some outputs are neither.</span>
+      <span lang="ja">三角形を変換してみましょう。不変な出力はそのまま、同変な出力は一緒に動き、どちらでもない出力もあります。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">For a transformation $g$ (shift, rotation, …): $f$ is <strong>invariant</strong> if $f(g\cdot x)=f(x)$, and <strong>equivariant</strong> if $f(g\cdot x)=g\cdot f(x)$.</p>
+    <p lang="ja">変換 $g$（平行移動、回転など）について、$f(g\cdot x)=f(x)$ なら $f$ は<strong>不変</strong>、$f(g\cdot x)=g\cdot f(x)$ なら<strong>同変</strong>です。</p>
+  </div>
+
+  <!-- 5.4 -->
+  <h2><span lang="en">5.4 Composition</span><span lang="ja">5.4 合成</span></h2>
+  <p lang="en">Many complicated relationships are built from simple steps: edges make shapes, shapes make objects, objects make scenes. If the target has that structure, the model should have it too.</p>
+  <p lang="ja">複雑な関係の多くは、単純なステップの積み重ねでできています。エッジが形を作り、形が物体を作り、物体が場面を作ります。目標の関数がそのような構造を持つなら、モデルも同じ構造を持つべきです。</p>
+
+  <details class="predict">
+    <summary><span lang="en">Starting from the W shape, which adds new corners: fold, or −1 and then fold?</span><span lang="ja">W の形から始めて、新しい角を作るのはどちらでしょうか。「折る」だけか、「−1 してから折る」か？</span></summary>
+    <p lang="en">“−1 then fold”: the 3 corners become 5. Folding alone does nothing, because the W is never negative. Shifting first pushes part of the curve below zero, and the fold bends it back up, creating new corners.</p>
+    <p lang="ja">「−1 してから折る」です。3つの角が5つになります。W は負にならないので、折るだけでは何も起きません。先にずらすと曲線の一部が0より下に来て、折るとそこが上に曲がり、新しい角ができます。</p>
+  </details>
+
+  <figure class="widget" data-widget="compose-blocks">
+    <figcaption>
+      <span lang="en">Snap simple blocks together. The final function (orange) is the composition $f_L\circ\dots\circ f_1$.</span>
+      <span lang="ja">単純なブロックをつないでいきます。最終的な関数（オレンジ）は合成 $f_L\circ\dots\circ f_1$ です。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 5.5 -->
+  <h2><span lang="en">5.5 Smoothness and locality</span><span lang="ja">5.5 滑らかさと局所性</span></h2>
+  <p lang="en">Between two data points we have no data at all. The only reason we can predict there is an <em>assumption</em>: nearby inputs have similar outputs. How “nearby” is defined is itself a choice, and a consequential one.</p>
+  <p lang="ja">2つのデータ点の間には、データがまったくありません。それでもそこで予測できる唯一の理由は、「近い入力は似た出力を持つ」という<em>仮定</em>です。何を「近い」とするかもまた選択であり、その影響は大きいのです。</p>
+
+  <figure class="widget" data-widget="smoothness-interp">
+    <figcaption>
+      <span lang="en">Estimate the mean of $y$ at each $x$ by averaging nearby data. The right panel shows the error against the true mean $\sin x$ for every width.</span>
+      <span lang="ja">各 $x$ での $y$ の平均を、近くのデータの平均で推定します。右の図は、幅ごとの、真の平均 $\sin x$ に対する誤差です。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box misconception">
+    <p lang="en">“A flexible enough model doesn't need assumptions.” Every model that predicts between data points is making assumptions. The only question is whether they match the world. Flexibility in directions the data does not need just wastes data.</p>
+    <p lang="ja">「十分に柔軟なモデルなら仮定はいらない」というのは誤りです。データ点の間を予測するモデルは、どれも何かを仮定しています。問題は、その仮定が世界と合っているかどうかだけです。データが必要としない方向の柔軟さは、データを無駄にするだけです。</p>
+  </div>
+
+  <div class="box takeaway">
+    <p lang="en">Structure in the data (independence, low dimension, symmetry, composition, smoothness) tells us what kind of function to look for. That is inductive bias.</p>
+    <p lang="ja">データの構造（独立性、低次元性、対称性、合成、滑らかさ）は、探すべき関数の種類を教えてくれる。それが帰納バイアスである。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">An image classifier should output “cat” wherever the cat is. Should it be invariant or equivariant to shifts? What about a model that outputs a box around the cat?</span><span lang="ja">画像分類器は、猫がどこにいても「猫」と出力すべきです。平行移動に対して不変であるべきでしょうか、同変であるべきでしょうか。猫を囲む枠を出力するモデルはどうでしょうか？</span></summary>
+    <p lang="en">The classifier should be invariant: the label doesn't move. The box model should be equivariant: shift the cat and the box should shift by the same amount.</p>
+    <p lang="ja">分類器は不変であるべきです。ラベルは動かないからです。枠を出すモデルは同変であるべきです。猫をずらしたら、枠も同じだけずれるべきだからです。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">We know what structure to look for. How do we build a family of functions that is rich enough to fit almost anything, yet shaped by these assumptions? → <a href="ch06-architectures.html">Chapter 6</a></p>
+    <p lang="ja">探すべき構造は分かりました。ほぼ何にでも当てはまるほど豊かでありながら、これらの仮定に沿った形をした関数族は、どう組み立てればよいでしょうか。→ <a href="ch06-architectures.html">第6章</a></p>
+  </div>
+</main>
+</body>
+</html>

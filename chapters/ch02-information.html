@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2. Information, Entropy, and Cross-Entropy · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch02">
+<main>
+  <p class="kicker"><span lang="en">Part I · Chapter 2</span><span lang="ja">第I部・第2章</span></p>
+  <h1><span lang="en">Information, Entropy, and Cross-Entropy</span><span lang="ja">情報量・エントロピー・交差エントロピー</span></h1>
+  <p class="question"><span lang="en">How do we measure how well one distribution describes another?</span><span lang="ja">ある分布が別の分布をどれだけうまく表すかを、どう測るか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">Two forecasters, ten days. Each morning they each announce a chance of rain. Both get the direction right on 9 of the 10 days. Is one of them <em>better</em>?</p>
+    <p lang="ja">2人の予報士と10日間の記録があります。毎朝、それぞれが降水確率を発表します。どちらも10日中9日で向きを当てました。どちらかが<em>より優秀</em>と言えるでしょうか？</p>
+  </div>
+
+  <figure class="widget" data-widget="forecaster-table">
+    <figcaption>
+      <span lang="en">Forecaster A is always extremely confident. Forecaster B is more modest. Both miss on day 6.</span>
+      <span lang="ja">予報士 A はいつも極端に自信満々で、予報士 B は控えめです。2人とも6日目を外しています。</span>
+    </figcaption>
+  </figure>
+
+  <p lang="en">Counting hits says they tie. But A said “1%” on a day it rained. The score that breaks the tie is <em>surprise</em>. The rest of this chapter explains why that is the right score.</p>
+  <p lang="ja">的中数で数えると引き分けです。しかし A は、実際に雨が降った日に「1%」と言っていました。この引き分けを崩すスコアが<em>驚き</em>です。この章の残りでは、なぜそれが正しいスコアなのかを説明します。</p>
+
+  <!-- 2.1 -->
+  <h2><span lang="en">2.1 Surprise</span><span lang="ja">2.1 驚き</span></h2>
+  <p lang="en">If you believed an event had probability $q$ and it happened, how surprised should you be? Two demands pin down the answer. A sure thing ($q=1$) should give zero surprise. For two independent events, the surprise at seeing both should be the surprise of one <em>plus</em> the surprise of the other.</p>
+  <p lang="ja">ある事象の確率を $q$ だと信じていて、それが実際に起きたとき、どれだけ驚くべきでしょうか。2つの要請で答えが決まります。確実なこと（$q=1$）の驚きは0であること。そして独立な2つの事象が両方起きたときの驚きは、それぞれの驚きの<em>和</em>になることです。</p>
+
+  <details class="predict">
+    <summary><span lang="en">Event A has q = 0.5 and event B has q = 0.25. How surprised should you be if both happen?</span><span lang="ja">事象 A は q = 0.5、事象 B は q = 0.25 です。両方起きたら、どれだけ驚くべきでしょうか？</span></summary>
+    <p lang="en">1 bit + 2 bits = 3 bits. The joint probability is 1/8, and $-\log_2(1/8)=3$.</p>
+    <p lang="ja">1ビット + 2ビット = 3ビットです。同時確率は1/8で、$-\log_2(1/8)=3$ になります。</p>
+  </details>
+
+  <figure class="widget" data-widget="surprisal-curve">
+    <figcaption>
+      <span lang="en">Left: surprise as a function of the probability you assigned. Right: surprises of independent events stack.</span>
+      <span lang="ja">左：自分が割り当てた確率の関数としての驚き。右：独立な事象の驚きは積み上がる。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">The <strong>surprisal</strong> of an outcome $y$ under belief $q$ is $\;s_q(y)=-\log q(y)$. With $\log_2$ it is measured in <em>bits</em>, and with $\ln$ in <em>nats</em>.</p>
+    <p lang="ja">信念 $q$ のもとでの結果 $y$ の<strong>驚き（自己情報量）</strong>は $\;s_q(y)=-\log q(y)$ です。$\log_2$ を使うと単位は<em>ビット</em>、$\ln$ を使うと<em>ナット</em>になります。</p>
+  </div>
+
+  <!-- 2.2 -->
+  <h2><span lang="en">2.2 Entropy: the unavoidable surprise</span><span lang="ja">2.2 エントロピー：避けられない驚き</span></h2>
+  <p lang="en">Suppose you know the true distribution $p$ perfectly. You will <em>still</em> be surprised sometimes, because the world is random. Your average surprise is the <strong>entropy</strong> of $p$. It measures how unpredictable the world is in itself.</p>
+  <p lang="ja">真の分布 $p$ を完全に知っていたとしても、世界はランダムなので、ときどきは<em>やはり</em>驚きます。そのときの平均の驚きが $p$ の<strong>エントロピー</strong>です。世界そのものの予測しにくさを表します。</p>
+
+  <figure class="widget" data-widget="entropy-coin">
+    <figcaption>
+      <span lang="en">Entropy of a rain/no-rain distribution. It is largest for a fair coin and zero for a certain outcome.</span>
+      <span lang="ja">雨/晴れの分布のエントロピー。公平なコインで最大になり、結果が確実なら0になります。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$H(p)=\mathbb E_{y\sim p}\big[-\log p(y)\big]=-\sum_y p(y)\log p(y).$$
+  </div>
+
+  <!-- 2.3 -->
+  <h2><span lang="en">2.3 Cross-entropy and KL: the cost of a wrong belief</span><span lang="ja">2.3 交差エントロピーとKL：誤った信念のコスト</span></h2>
+  <p lang="en">Now suppose the world follows $p$ but you believe $q$. You score yourself with $-\log q(y)$, while the outcomes $y$ are drawn from $p$. Your average surprise is the <strong>cross-entropy</strong> $H(p,q)$. It splits into two parts. The first is the surprise you could never avoid, $H(p)$. The second is the extra surprise caused by believing the wrong thing, the <strong>KL divergence</strong>.</p>
+  <p lang="ja">今度は、世界は $p$ に従っているのに、あなたは $q$ を信じているとします。結果 $y$ は $p$ から出てくるのに、自分の採点には $-\log q(y)$ を使うことになります。このときの平均の驚きが<strong>交差エントロピー</strong> $H(p,q)$ です。これは2つの部分に分かれます。1つ目はどうしても避けられない驚き $H(p)$、2つ目は誤った信念のせいで生じる余分な驚きで、これを <strong>KLダイバージェンス</strong>と呼びます。</p>
+
+  <details class="predict">
+    <summary><span lang="en">Can you drag the bars so that the red KL part becomes negative?</span><span lang="ja">棒をドラッグして、赤い KL の部分を負にできるでしょうか？</span></summary>
+    <p lang="en">No. Believing anything other than the truth can only add surprise on average. This is Gibbs' inequality.</p>
+    <p lang="ja">できません。真実以外のものを信じると、平均の驚きは増えることしかありません。これがギブスの不等式です。</p>
+  </details>
+
+  <figure class="widget" data-widget="kl-bars">
+    <figcaption>
+      <span lang="en">Four kinds of weather. Blue is the truth p, orange the belief q. The stacked bar splits cross-entropy into entropy plus KL.</span>
+      <span lang="ja">4種類の天気。青が真実 p、オレンジが信念 q です。積み上げ棒は、交差エントロピーをエントロピーと KL の和に分解しています。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$H(p,q)=-\sum_y p(y)\log q(y),\qquad D_{KL}(p\,\|\,q)=\sum_y p(y)\log\frac{p(y)}{q(y)}=H(p,q)-H(p)\;\ge 0.$$
+    <p lang="en">Equality holds only when $q=p$. See <a href="../appendices/c-proofs.html#gibbs">Appendix C</a> for a three-line proof using $\log t\le t-1$.</p>
+    <p lang="ja">等号が成り立つのは $q=p$ のときだけです。$\log t\le t-1$ を使った3行の証明は<a href="../appendices/c-proofs.html#gibbs">付録C</a>にあります。</p>
+  </div>
+
+  <div class="box misconception">
+    <p lang="en">“KL is the distance between two distributions.” Not quite. Press <em>Swap</em>: $D_{KL}(p\|q)\neq D_{KL}(q\|p)$ in general. KL measures the cost of using $q$ <em>when the world is $p$</em>, and that direction matters.</p>
+    <p lang="ja">「KL は2つの分布の距離である」というのは正確ではありません。<em>入れ替え</em>ボタンを押してみましょう。一般に $D_{KL}(p\|q)\neq D_{KL}(q\|p)$ です。KL が測っているのは「<em>世界が $p$ のときに</em> $q$ を使うコスト」であり、向きに意味があります。</p>
+  </div>
+
+  <!-- 2.4 -->
+  <h2><span lang="en">2.4 We never see p, only data</span><span lang="ja">2.4 p そのものは見えない。見えるのはデータだけ</span></h2>
+  <p lang="en">In practice nobody hands us $p$. We have samples $y_1,\dots,y_n$ drawn from it. Replace the expectation over $p$ by an average over the samples. This gives the <strong>average negative log-likelihood</strong>, and choosing $q$ to minimize it is <strong>maximum likelihood estimation</strong>.</p>
+  <p lang="ja">実際には、誰も $p$ を教えてはくれません。手元にあるのは、$p$ から出てきたサンプル $y_1,\dots,y_n$ です。$p$ についての期待値を、サンプルについての平均で置き換えます。これが<strong>平均負の対数尤度</strong>で、これを最小にする $q$ を選ぶことを<strong>最尤推定</strong>と呼びます。</p>
+
+  <figure class="widget" data-widget="mle-nll">
+    <figcaption>
+      <span lang="en">The simplest model: one knob θ = chance of rain, ignoring humidity. The red curve is the average surprise on the observed days.</span>
+      <span lang="ja">最も単純なモデル：湿度を無視し、つまみは θ = 降水確率の1つだけ。赤い曲線は、観測した日々での平均の驚きです。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    $$\underbrace{\frac1n\sum_{i=1}^n -\log q(y_i)}_{\text{average NLL}}\;=\;H(\hat p,q)\;\xrightarrow{\;n\to\infty\;}\;H(p,q)=H(p)+D_{KL}(p\|q).$$
+    <p lang="en">Here $\hat p$ is the empirical distribution of the data. Since $H(p)$ does not depend on $q$, <strong>minimizing average NLL, minimizing cross-entropy, and minimizing KL to the truth are the same goal.</strong></p>
+    <p lang="ja">ここで $\hat p$ はデータの経験分布です。$H(p)$ は $q$ によらないので、<strong>平均負の対数尤度の最小化、交差エントロピーの最小化、真実との KL の最小化は、すべて同じ目標です。</strong></p>
+  </div>
+
+  <!-- 2.5 -->
+  <h2><span lang="en">2.5 Squared error is secretly a log-loss</span><span lang="ja">2.5 二乗誤差の正体は対数損失</span></h2>
+  <p lang="en">For the curve example we usually minimize mean squared error. That is not a separate idea. Suppose the model says “$y$ is Gaussian around $a\sin x$ with spread $\sigma$.” Then its surprise is the squared error, rescaled, plus a constant.</p>
+  <p lang="ja">曲線の例では、普通は平均二乗誤差を最小化します。これは別の考え方ではありません。モデルが「$y$ は $a\sin x$ を中心に、広がり $\sigma$ のガウス分布に従う」と言っているとします。すると、このモデルの驚きは、二乗誤差を定数倍して定数を足したものになります。</p>
+
+  <figure class="widget" data-widget="mse-vs-nll">
+    <figcaption>
+      <span lang="en">Left: data, the model mean (orange), and its ±σ band. Right: MSE and Gaussian NLL as functions of the amplitude a. Both bottom out at the same a.</span>
+      <span lang="ja">左：データ、モデルの平均（オレンジ）とその ±σ の帯。右：振幅 a の関数としての MSE とガウスの負の対数尤度。どちらも同じ a で最小になります。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 2.6 -->
+  <h2><span lang="en">2.6 Honesty pays: proper scores</span><span lang="ja">2.6 正直が得をする：適切なスコア</span></h2>
+  <p lang="en">Why not just count hits? Because then a forecaster gains nothing from saying 70% instead of 99%, so calibrated honesty goes unrewarded. A <strong>proper scoring rule</strong> is one where announcing your true belief minimizes your expected penalty. Log-loss is proper, and so is the Brier score.</p>
+  <p lang="ja">なぜ的中数を数えるだけではいけないのでしょうか。それでは、99%ではなく70%と言っても予報士は何も得をせず、較正された正直さが報われないからです。<strong>適切なスコアリング規則</strong>とは、自分の本当の信念を発表したときに期待ペナルティが最小になる規則のことです。対数損失は適切なスコアであり、Brier スコアもそうです。</p>
+
+  <figure class="widget" data-widget="scoring-game">
+    <figcaption>
+      <span lang="en">You know the true chance p. Which r should you announce? Under a proper score, exactly r = p.</span>
+      <span lang="ja">あなたは本当の確率 p を知っています。どの r を発表すべきでしょうか。適切なスコアのもとでは、ちょうど r = p です。</span>
+    </figcaption>
+  </figure>
+
+  <h2><span lang="en">Back to the forecasters</span><span lang="ja">予報士に戻る</span></h2>
+  <p lang="en">A's average surprise is 0.68 bits and B's is 0.52 bits. B wins. A's single confident miss cost more than all of its confident hits saved. The log-loss rewards forecasts that are <em>calibrated</em>, not just right.</p>
+  <p lang="ja">A の平均の驚きは0.68ビット、B は0.52ビットで、B の勝ちです。A が自信満々で外した1回のコストは、自信満々で当てた日々で稼いだ分をすべて上回りました。対数損失が報いるのは、ただ当たる予報ではなく<em>較正された</em>予報です。</p>
+
+  <div class="box takeaway">
+    <p lang="en">Training a probabilistic model means minimizing average surprise on data, which is the same as pulling the model toward the truth in KL.</p>
+    <p lang="ja">確率モデルを学習するとは、データ上の平均の驚きを最小にすることであり、それは KL の意味でモデルを真実に引き寄せることと同じである。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">A model assigns probability 0 to an outcome that then happens. What is its log-loss?</span><span lang="ja">あるモデルが確率0を割り当てた結果が、実際に起きました。対数損失はいくらでしょうか？</span></summary>
+    <p lang="en">Infinite. This is why models should never be completely certain, and why output layers like sigmoid and softmax never output exactly 0.</p>
+    <p lang="ja">無限大です。だからモデルは決して完全に確信してはいけないのです。sigmoid や softmax のような出力層がちょうど0を出さないのも、このためです。</p>
+  </details>
+  <details class="check">
+    <summary><span lang="en">Why does $H(p)$ not matter when we choose $q$?</span><span lang="ja">$q$ を選ぶとき、$H(p)$ が関係ないのはなぜでしょうか？</span></summary>
+    <p lang="en">It depends only on the world, not on our model. It is a floor that no $q$ can go below, and it shifts the loss curve without moving its minimum.</p>
+    <p lang="ja">$H(p)$ は世界だけで決まり、モデルにはよらないからです。どの $q$ でも下回れない床であり、損失曲線を上下に動かすだけで、最小点の位置は変えません。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">To <em>search</em> for the $q$ with lowest loss, we must treat $q$, and later a whole function $x\mapsto q(\cdot\mid x)$, as an object we can move around. What does it mean for a function to be a point in a space? → <a href="ch03-functions.html">Chapter 3</a></p>
+    <p lang="ja">損失が最小の $q$ を<em>探す</em>には、$q$ を（そして後には関数 $x\mapsto q(\cdot\mid x)$ 全体を）動かせる対象として扱う必要があります。関数が空間の中の1点であるとは、どういうことでしょうか。→ <a href="ch03-functions.html">第3章</a></p>
+  </div>
+</main>
+</body>
+</html>

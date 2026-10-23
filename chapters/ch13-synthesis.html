@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>13. Putting It All Together · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch13">
+<main>
+  <p class="kicker"><span lang="en">Part V · Chapter 13</span><span lang="ja">第V部・第13章</span></p>
+  <h1><span lang="en">Putting It All Together</span><span lang="ja">総まとめ</span></h1>
+  <p class="question"><span lang="en">How do the pieces combine into one working system?</span><span lang="ja">全部の部品は、どう一つのシステムになるか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">Chapter 1 opened with a forecast: “70% chance of rain.” We asked what it was a claim about, and how we could check it. You now have everything needed to <em>build</em> such a forecaster and to <em>verify</em> it.</p>
+    <p lang="ja">第1章は「降水確率70%」という予報から始まりました。それが何についての主張なのか、どうすれば確かめられるのかを問いました。今のあなたには、そのような予報士を<em>作り</em>、それを<em>検証する</em>ために必要なものがすべてそろっています。</p>
+  </div>
+
+  <!-- 13.1 -->
+  <h2><span lang="en">13.1 End to end: the rain forecaster</span><span lang="ja">13.1 最初から最後まで：雨の予報士</span></h2>
+  <p lang="en">Five stages, each one a part of the book. Step through them.</p>
+  <p lang="ja">5つの段階があり、それぞれがこの本の一部に対応しています。順にたどってみましょう。</p>
+
+  <figure class="widget" data-widget="pipeline-replay">
+    <figcaption>
+      <span lang="en">The whole pipeline on the running example, computed live. Each stage links back to the chapters it relies on.</span>
+      <span lang="ja">例題でのパイプライン全体を、その場で計算しています。各段階から、それが依拠する章へ戻れます。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 13.2 -->
+  <h2><span lang="en">13.2 One equation</span><span lang="ja">13.2 1つの式</span></h2>
+  <p lang="en">The whole book fits in a single line. Every symbol in it is a chapter you have read.</p>
+  <p lang="ja">この本全体は1行に収まります。その中のどの記号も、あなたが読んできた章に対応しています。</p>
+
+  <figure class="widget" data-widget="equation-map">
+    <figcaption>
+      <span lang="en">Hover each part to see what it means and where it was built.</span>
+      <span lang="ja">各部分にマウスを乗せると、その意味と、どこで組み立てたかが分かります。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 13.3 -->
+  <h2><span lang="en">13.3 Diagnostic guide</span><span lang="ja">13.3 診断ガイド</span></h2>
+  <p lang="en">When a model disappoints, there are only three places the fault can live. The family may not be rich enough (Part III). The search may not have found the right member (Part IV). Or the data may not pin it down (Chapters 5 and 12). A few yes/no questions tell you which.</p>
+  <p lang="ja">モデルが期待外れのとき、原因のありかは3つしかありません。関数族が十分に豊かでない（第III部）、探索が正しい要素を見つけられていない（第IV部）、あるいはデータがそれを決めきれていない（第5章・第12章）。どれなのかは、いくつかの「はい/いいえ」の質問で分かります。</p>
+
+  <figure class="widget" data-widget="diagnostic-flowchart">
+    <figcaption>
+      <span lang="en">Answer about your own model, or about any experiment in this book.</span>
+      <span lang="ja">自分のモデルについて答えても、この本のどの実験について答えても構いません。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 13.4 -->
+  <h2><span lang="en">13.4 Modern extensions: learning p(x) itself</span><span lang="ja">13.4 現代的な発展：p(x) そのものを学ぶ</span></h2>
+  <p lang="en">Everything so far learned a <em>conditional</em> $p(y\mid x)$. <strong>Generative models</strong> learn the distribution of the data itself, $p(x)$, so they can produce new samples. The ideas are the same, and so is the loss: log-likelihood, or a bound on it.</p>
+  <p lang="ja">ここまでに学んできたのは、すべて<em>条件付き</em>分布 $p(y\mid x)$ でした。<strong>生成モデル</strong>はデータそのものの分布 $p(x)$ を学習し、新しいサンプルを作り出せます。考え方は同じで、損失も同じです。対数尤度か、その上界・下界を使います。</p>
+
+  <figure class="widget" data-widget="generative-sampler">
+    <figcaption>
+      <span lang="en">The smallest autoregressive model: each day's weather conditioned on the day before. Each row is one sampled month.</span>
+      <span lang="ja">最小の自己回帰モデル：各日の天気を前日の天気で条件付けます。各行がサンプルした1か月分です。</span>
+    </figcaption>
+  </figure>
+
+  <table class="w-table" lang="en">
+    <tr><th>model</th><th>what the network outputs (level 2)</th><th>how p(x) is built (level 3)</th><th>loss (level 4)</th></tr>
+    <tr><td>autoregressive (GPT)</td><td>logits for the next token, given the previous ones</td><td>chain rule: $\prod_t q(x_t\mid x_{&lt;t})$</td><td>exact −log-likelihood</td></tr>
+    <tr><td>VAE</td><td>mean/scale of a latent code, and of x given that code</td><td>$\int q(x\mid z)\,p(z)\,dz$</td><td>a bound on −log-likelihood (ELBO)</td></tr>
+    <tr><td>diffusion</td><td>the noise to remove at each step</td><td>a chain of small Gaussian denoising steps</td><td>a weighted bound on −log-likelihood</td></tr>
+  </table>
+  <table class="w-table" lang="ja">
+    <tr><th>モデル</th><th>ネットワークの出力（レベル2）</th><th>p(x) の作り方（レベル3）</th><th>損失（レベル4）</th></tr>
+    <tr><td>自己回帰（GPT）</td><td>それまでのトークンのもとでの次のトークンのロジット</td><td>連鎖律：$\prod_t q(x_t\mid x_{&lt;t})$</td><td>正確な負の対数尤度</td></tr>
+    <tr><td>VAE</td><td>潜在コードの平均・スケールと、そのコードのもとでの x の平均・スケール</td><td>$\int q(x\mid z)\,p(z)\,dz$</td><td>負の対数尤度の上界（ELBO）</td></tr>
+    <tr><td>拡散モデル</td><td>各ステップで取り除くノイズ</td><td>ガウス分布による小さなノイズ除去ステップの連鎖</td><td>負の対数尤度の重み付き上界</td></tr>
+  </table>
+
+  <p lang="en">In each case the network <em>still</em> outputs numbers that name distributions (Chapter 4). It is still scored by surprise (Chapter 2), built from layers and bends (Part III), and trained by gradients (Part IV).</p>
+  <p lang="ja">どの場合も、ネットワークが出力するのは<em>やはり</em>分布を名指す数です（第4章）。そして驚きで採点され（第2章）、層と曲がりで組み立てられ（第III部）、勾配で学習されます（第IV部）。</p>
+
+  <div class="box takeaway">
+    <p lang="en">Choose a family rich enough and shaped right (representation). Find a good member of it (search). Then check that it is right and honest on new data (generalization and calibration). The network never outputs a distribution. It outputs the numbers that name one.</p>
+    <p lang="ja">十分に豊かで、正しい形をした族を選ぶ（表現）。その中のよい要素を見つける（探索）。そして、新しいデータでも正しく正直であることを確かめる（汎化と較正）。ネットワークは分布を出力するのではない。分布を名指す数を出力するのである。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">Your model's training loss is far below the entropy of the data, and its held-out loss is high. Which part of the book do you reopen?</span><span lang="ja">モデルの訓練損失がデータのエントロピーをはるかに下回り、学習に使わなかったデータでの損失は高くなっています。この本のどの部分を開き直しますか？</span></summary>
+    <p lang="en">Chapter 12 (and 5). It is memorizing noise. Regularize, stop early, add data, or build in structure. The family and the search are doing their jobs too well.</p>
+    <p lang="ja">第12章（と第5章）です。モデルはノイズを記憶しています。正則化する、早めに止める、データを増やす、あるいは構造を組み込みましょう。関数族と探索は、自分の仕事をうまくやりすぎているのです。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">Where next? The <a href="../appendices/a-notation.html">appendices</a> collect notation, the math background, full proof sketches, and NumPy exercises that rebuild every experiment in this book.</p>
+    <p lang="ja">次はどこへ？ <a href="../appendices/a-notation.html">付録</a>には、記法、数学の背景、証明のスケッチ、そしてこの本のすべての実験を自分で再現する NumPy の演習をまとめてあります。</p>
+  </div>
+</main>
+</body>
+</html>

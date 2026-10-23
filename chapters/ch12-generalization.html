@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en" data-root="..">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>12. Generalization and Calibration · Functions That Learn Functions</title>
+<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/book.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="module" src="../assets/js/book.js"></script>
+</head>
+<body data-page="ch12">
+<main>
+  <p class="kicker"><span lang="en">Part IV · Chapter 12</span><span lang="ja">第IV部・第12章</span></p>
+  <h1><span lang="en">Generalization and Calibration</span><span lang="ja">汎化と較正</span></h1>
+  <p class="question"><span lang="en">When does a learned distribution stay correct on new data?</span><span lang="ja">学習した分布は、いつ新しいデータでも正しいままか？</span></p>
+
+  <div class="box hook">
+    <p lang="en">Your rain model has a training loss of 0.05 bits, far better than the 0.4 that the <em>true</em> model achieves. Something is wrong. And on the days it says “99%”, how often does it actually rain?</p>
+    <p lang="ja">あなたの雨のモデルの訓練損失は0.05ビットで、<em>真の</em>モデルが達成する0.4ビットよりはるかによい値です。どこかがおかしいのです。そして、このモデルが「99%」と言う日に、実際にはどのくらいの頻度で雨が降るのでしょうか。</p>
+  </div>
+
+  <ul class="objectives" lang="en">
+    <li>Measure the generalization gap and shrink it with regularization and early stopping.</li>
+    <li>See how gradient descent quietly prefers simple solutions.</li>
+    <li>Read a reliability diagram and fix overconfidence with temperature scaling.</li>
+    <li>Separate aleatoric from epistemic uncertainty.</li>
+  </ul>
+  <ul class="objectives" lang="ja">
+    <li>汎化ギャップを測り、正則化と早期終了で縮める。</li>
+    <li>勾配降下法が、ひそかに単純な解を好むことを見る。</li>
+    <li>信頼度図を読み、温度スケーリングで自信過剰を直す。</li>
+    <li>偶然的不確実性と認識的不確実性を区別する。</li>
+  </ul>
+
+  <!-- 12.1 -->
+  <h2><span lang="en">12.1 The generalization gap</span><span lang="ja">12.1 汎化ギャップ</span></h2>
+  <p lang="en">Chapter 4 separated the risk $R$ (the whole world) from the empirical risk $\hat R$ (our sample). Search minimizes $\hat R$. If the training loss drops <em>below</em> the entropy of the world (Chapter 2's floor), the model must be explaining noise. Chapter 8's random-label experiment showed it is perfectly able to.</p>
+  <p lang="ja">第4章では、リスク $R$（世界全体）と経験リスク $\hat R$（手元のサンプル）を区別しました。探索が最小化するのは $\hat R$ です。訓練損失が世界のエントロピー（第2章の床）を<em>下回った</em>なら、モデルはノイズを説明しているに違いありません。第8章のランダムなラベルの実験で、モデルにはそれが十分にできることを見ました。</p>
+
+  <details class="predict">
+    <summary><span lang="en">With no weight decay (λ = 0), when is the network at its best on new days: at the start, early, or at the end?</span><span lang="ja">重み減衰なし（λ = 0）のとき、ネットワークが新しい日で最もよいのはいつでしょうか。最初、早い段階、それとも最後？</span></summary>
+    <p lang="en">Early, around step 100. After that, it keeps improving on the 60 training days while getting worse on everything else.</p>
+    <p lang="ja">早い段階、ステップ100付近です。そのあとは、訓練に使った60日ではよくなり続ける一方で、それ以外のすべての日では悪くなっていきます。</p>
+  </details>
+
+  <figure class="widget" data-widget="regularization-curves">
+    <figcaption>
+      <span lang="en">The same 2×128 ReLU network trained on the 60 rain days with different weight decay (precomputed). Faint lines: the other settings.</span>
+      <span lang="ja">同じ 2×128 の ReLU ネットワークを、60日分の雨のデータで重み減衰を変えて学習させたもの（事前計算）。薄い線：他の設定。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en"><strong>Generalization gap</strong> $=R(\theta)-\hat R(\theta)$. Common remedies:</p>
+    <p lang="ja"><strong>汎化ギャップ</strong> $=R(\theta)-\hat R(\theta)$。よく使われる対策：</p>
+    <ul lang="en">
+      <li><strong>Weight decay:</strong> minimize $\hat R(\theta)+\tfrac\lambda2\|\theta\|^2$, which prefers small weights and hence simpler functions.</li>
+      <li><strong>Early stopping:</strong> keep the parameters from the step with the best held-out loss.</li>
+      <li><strong>Dropout:</strong> randomly silence units during training, so no single unit can memorize.</li>
+      <li><strong>More data</strong>, or a better inductive bias (Chapters 5 and 8).</li>
+    </ul>
+    <ul lang="ja">
+      <li><strong>重み減衰：</strong>$\hat R(\theta)+\tfrac\lambda2\|\theta\|^2$ を最小化します。小さな重み、つまりより単純な関数が好まれます。</li>
+      <li><strong>早期終了：</strong>学習に使わなかったデータでの損失が最もよかったステップのパラメータを残します。</li>
+      <li><strong>ドロップアウト：</strong>学習中にユニットをランダムに黙らせ、1つのユニットが記憶を担えないようにします。</li>
+      <li><strong>データを増やす</strong>、またはよりよい帰納バイアス（第5章・第8章）。</li>
+    </ul>
+  </div>
+
+  <!-- 12.2 -->
+  <h2><span lang="en">12.2 The implicit bias of gradient descent</span><span lang="ja">12.2 勾配降下法の暗黙のバイアス</span></h2>
+  <p lang="en">Modern networks often have more parameters than data points, so many settings fit the training data perfectly. Which one do we get? The answer depends on the <em>search</em>, not only on the loss.</p>
+  <p lang="ja">現代のネットワークはデータ点よりパラメータのほうが多いことがよくあり、訓練データに完璧に当てはまる設定がたくさんあります。そのうちどれが得られるのでしょうか。答えは損失だけでなく、<em>探索</em>によっても決まります。</p>
+
+  <figure class="widget" data-widget="implicit-bias">
+    <figcaption>
+      <span lang="en">8 points, 30 Fourier features. Every curve shown has zero training error.</span>
+      <span lang="ja">点は8個、フーリエ特徴は30個。表示しているどの曲線も、訓練誤差は0です。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 12.3 -->
+  <h2><span lang="en">12.3 Calibration: are the probabilities honest?</span><span lang="ja">12.3 較正：その確率は正直か</span></h2>
+  <p lang="en">A model can rank days correctly and still lie about how sure it is. Group the predictions by confidence and check how often it really rained in each group. If the model says 80%, it should rain about 80% of the time. This is the forecast check from Chapter 1, made systematic.</p>
+  <p lang="ja">モデルは、日々の順位付けは正しくても、自分の確信度については嘘をつくことがあります。予測を確信度ごとにまとめ、各グループで実際に雨が降った頻度を確かめましょう。モデルが80%と言うなら、約80%の割合で雨が降るはずです。これは第1章の予報の確かめ方を、体系的にしたものです。</p>
+
+  <figure class="widget" data-widget="reliability-diagram">
+    <figcaption>
+      <span lang="en">Real predictions from a small network on 1,000 new days (precomputed). Slide the temperature, or let it be fitted.</span>
+      <span lang="ja">小さなネットワークが1,000の新しい日に対して出した本物の予測（事前計算）。温度を動かすか、自動で当てはめてみましょう。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box definition">
+    <p lang="en">A model is <strong>calibrated</strong> if $P(Y=1\mid q(X)=c)=c$ for every confidence level $c$. <strong>Temperature scaling</strong> divides the logits by one number $T$, fitted on held-out data. With $T&gt;1$ the model becomes less confident, while its ranking of examples stays the same.</p>
+    <p lang="ja">すべての確信度 $c$ について $P(Y=1\mid q(X)=c)=c$ が成り立つとき、モデルは<strong>較正されている</strong>といいます。<strong>温度スケーリング</strong>は、学習に使わなかったデータで当てはめた1つの数 $T$ でロジットを割ります。$T&gt;1$ ならモデルの確信度は下がり、例の順位はそのまま保たれます。</p>
+  </div>
+
+  <!-- 12.4 -->
+  <h2><span lang="en">12.4 Proper scores, revisited</span><span lang="ja">12.4 適切なスコア、再び</span></h2>
+  <p lang="en">Both log-loss and the Brier score reward honesty (Chapter 2), which is why minimizing either tends to produce calibrated models <em>on the training distribution</em>. Overfitting breaks this on new data. The two scores also differ in what they punish.</p>
+  <p lang="ja">対数損失も Brier スコアも正直さに報います（第2章）。だから、どちらを最小化しても、<em>訓練分布の上では</em>較正されたモデルになりやすいのです。過学習すると、新しいデータではこれが崩れます。また、2つのスコアは何を罰するかも異なります。</p>
+
+  <figure class="widget" data-widget="score-compare">
+    <figcaption>
+      <span lang="en">Penalty as a function of the probability given to what actually happened.</span>
+      <span lang="ja">実際に起きたことに与えた確率の関数としてのペナルティ。</span>
+    </figcaption>
+  </figure>
+
+  <!-- 12.5 -->
+  <h2><span lang="en">12.5 Two kinds of uncertainty</span><span lang="ja">12.5 2種類の不確実性</span></h2>
+  <p lang="en">The predictive distribution $q(y\mid x)$ captures the world's randomness. But the model can also be unsure about <em>itself</em>, especially far from its data. One practical way to expose this is an <strong>ensemble</strong>: train several models on resampled data and see where they disagree.</p>
+  <p lang="ja">予測分布 $q(y\mid x)$ がとらえるのは世界のランダムさです。しかしモデルは、<em>自分自身</em>について不確かなこともあります。特にデータから遠い場所ではそうです。これを表に出す実用的な方法の1つが<strong>アンサンブル</strong>です。リサンプリングしたデータで複数のモデルを学習させ、どこで意見が食い違うかを見るのです。</p>
+
+  <figure class="widget" data-widget="ensemble-uncertainty">
+    <figcaption>
+      <span lang="en">Ten degree-6 polynomial fits on bootstrap resamples of the noisy-curve data.</span>
+      <span lang="ja">ノイズのある曲線のデータをブートストラップでリサンプリングし、6次多項式を10回当てはめたもの。</span>
+    </figcaption>
+  </figure>
+
+  <div class="box misconception">
+    <p lang="en">“A 99% prediction means the model is 99% sure it's right.” Only if it is calibrated, and only on data like its training data. Off-distribution inputs often get confident, wrong answers. Calibration checks and epistemic uncertainty estimates exist to catch exactly that.</p>
+    <p lang="ja">「99%の予測とは、モデルが99%の確率で正しいと確信しているということだ」が成り立つのは、モデルが較正されていて、しかも訓練データと似たデータに対してだけです。分布の外の入力には、自信満々の間違った答えが返ってくることがよくあります。較正のチェックと認識的不確実性の推定は、まさにそれを捕まえるためにあります。</p>
+  </div>
+
+  <div class="box takeaway">
+    <p lang="en">A good learned distribution must be right on new data <em>and</em> honest about how right it is. Check the first with held-out loss and the second with calibration.</p>
+    <p lang="ja">よい学習済みの分布は、新しいデータで正しいこと<em>と</em>、自分がどれだけ正しいかについて正直であることの両方を満たさなければならない。前者は学習に使わなかったデータでの損失で、後者は較正で確かめる。</p>
+  </div>
+
+  <details class="check">
+    <summary><span lang="en">Temperature scaling changes the log-loss. Does it change the accuracy?</span><span lang="ja">温度スケーリングで対数損失は変わります。では正解率は変わるでしょうか？</span></summary>
+    <p lang="en">No. Dividing every logit by the same $T&gt;0$ keeps each logit's sign, so every predicted class stays the same. Only the confidence changes.</p>
+    <p lang="ja">変わりません。すべてのロジットを同じ $T&gt;0$ で割っても各ロジットの符号は変わらないので、予測されるクラスはどれも同じままです。変わるのは確信度だけです。</p>
+  </details>
+
+  <div class="box bridge">
+    <p lang="en">We now have every piece: distributions and losses, the meta-level, representation, search, and generalization. How do they fit into one working pipeline, and when something fails, how do we know which piece to fix? → <a href="ch13-synthesis.html">Chapter 13</a></p>
+    <p lang="ja">これで部品はすべてそろいました。分布と損失、メタレベル、表現、探索、そして汎化です。これらはどのように1つの動くパイプラインになるのでしょうか。そして何かがうまくいかないとき、どの部品を直せばよいかをどう見分ければよいのでしょうか。→ <a href="ch13-synthesis.html">第13章</a></p>
+  </div>
+</main>
+</body>
+</html>
