@@ -1,0 +1,780 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Evolution Meets GenAI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root{--bg:#F2F4F6;--panel:#FFFFFF;--ink:#16212B;--muted:#5A6873;--line:#D5DCE2;--amber:#B8731A;--leaf:#2C8466;--accent:#8C3D6E;--tint:#F5E9F0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0E1317;--panel:#151C22;--ink:#E2E8ED;--muted:#93A1AC;--line:#26313A;--amber:#E5A447;--leaf:#4FC49B;--accent:#D985B6;--tint:#2A1C25;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0E1317;--panel:#151C22;--ink:#E2E8ED;--muted:#93A1AC;--line:#26313A;--amber:#E5A447;--leaf:#4FC49B;--accent:#D985B6;--tint:#2A1C25;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);margin:0;font-family:"Source Serif 4",Georgia,"Times New Roman",serif;font-size:17px;line-height:1.6}
+.wrap{max-width:1000px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px 64px}
+h1,h2,h3,.disp{font-family:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;line-height:1.15;letter-spacing:-.01em}
+h1{font-size:clamp(2rem,6vw,3.3rem);margin:.2em 0 .25em}
+h2{font-size:clamp(1.45rem,4vw,2rem);margin:0 0 .4em}
+h3{font-size:1.15rem;margin:1.4em 0 .4em}
+p{margin:.55em 0}
+a{color:var(--accent)}
+code,pre,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.84em}
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line);margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px)));padding:8px max(16px,env(safe-area-inset-left,0px))}
+nav.toc ul{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;white-space:nowrap}
+nav.toc a{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.74rem;text-decoration:none;color:var(--muted);padding:5px 9px;border:1px solid var(--line);border-radius:999px}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent);border-color:var(--accent)}
+nav.toc .grp{color:var(--ink);font-weight:600;border-color:transparent;padding-inline:4px}
+.hero{padding-top:20px}
+.kicker{font-family:"JetBrains Mono",monospace;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0}
+.thesis{font-size:1.2rem;max-width:44em}
+.stage{position:relative;width:100%;height:340px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+.stage canvas{display:block}
+.stage.tall{height:420px}
+.stage .hud{position:absolute;left:10px;bottom:8px;font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--muted);pointer-events:none;max-width:calc(100% - 20px)}
+.fallback{padding:24px;color:var(--muted)}
+section.c{padding-top:44px;margin-top:20px;border-top:1px solid var(--line)}
+.tag{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:1px 6px;margin-right:6px;vertical-align:middle}
+.viz{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:14px 0}
+.row{display:flex;flex-wrap:wrap;gap:14px}
+.row>*{flex:1 1 280px;min-width:0}
+canvas.plot{width:100%;display:block;border-radius:8px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:10px 0 4px}
+.ctl label{font-family:"JetBrains Mono",monospace;font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:8px}
+.ctl output{font-family:"JetBrains Mono",monospace;font-size:.76rem;color:var(--ink);min-width:3.2em}
+input[type=range]{accent-color:var(--accent);width:130px}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent)}
+select{font:inherit;font-size:.8rem;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px}
+button{font-family:"JetBrains Mono",monospace;font-size:.76rem;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.pri{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+button.pri:hover{opacity:.9;color:var(--panel)}
+.readout{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--muted);margin:6px 0;overflow-wrap:anywhere}
+.readout b{color:var(--ink);font-weight:600}
+.legend{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px;margin:4px 0}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.eq{font-size:1.18rem;text-align:center;padding:12px 8px;margin:12px 0 6px;border-left:3px solid var(--accent);background:var(--tint);border-radius:0 8px 8px 0;overflow-x:auto}
+.eq var{font-style:italic}
+table.terms{width:100%;border-collapse:collapse;font-size:.9rem;margin:6px 0 10px}
+table.terms td{border-top:1px solid var(--line);padding:5px 6px;vertical-align:top}
+table.terms td:first-child{font-family:"JetBrains Mono",monospace;white-space:nowrap;color:var(--accent);width:1%}
+.jar{border:1px dashed var(--line);border-radius:10px;padding:8px 12px;margin:12px 0;font-size:.92rem}
+.jar strong{font-family:"Bricolage Grotesque",sans-serif}
+.jar dl{margin:4px 0;display:grid;grid-template-columns:max-content 1fr;gap:3px 12px}
+.jar dt{font-family:"JetBrains Mono",monospace;font-size:.8rem;color:var(--accent)}
+.jar dd{margin:0}
+.skip{border-left:3px solid var(--amber);padding:6px 12px;margin:12px 0;font-size:.93rem;color:var(--ink)}
+.skip b{color:var(--amber);font-family:"JetBrains Mono",monospace;font-size:.78rem;letter-spacing:.04em}
+.apps{border-left:3px solid var(--leaf);padding:6px 12px;margin:14px 0;font-size:.95rem}
+.apps b{color:var(--leaf);font-family:"JetBrains Mono",monospace;font-size:.78rem}
+details.q{border-top:1px solid var(--line);padding:8px 0}
+details.q summary{cursor:pointer;font-weight:600}
+details.q p{color:var(--muted)}
+pre.box{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0;max-height:220px;overflow-y:auto}
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:10px}
+.map .cl{border-top:3px solid var(--accent);padding-top:8px}
+.map .cl:nth-child(2){border-top-color:var(--leaf)}
+.map .cl:nth-child(3){border-top-color:var(--amber)}
+.map h3{margin:0 0 4px;font-size:1rem}
+.map ul{margin:0;padding-left:1.1em;font-size:.93rem}
+.map ul ul{color:var(--muted);font-size:.88rem}
+.bits{display:flex;gap:3px;flex-wrap:wrap;align-items:center;margin:3px 0}
+.bits button{width:26px;padding:4px 0;text-align:center}
+.bits button.on{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+.bits .lbl{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--muted);width:4.5em}
+.bits.off{opacity:.35}
+.out-line{font-family:"JetBrains Mono",monospace;font-size:.8rem}
+.out-line.bad{text-decoration:line-through;color:var(--muted)}
+svg.wm{width:100%;height:auto;display:block}
+svg.wm rect{fill:var(--panel);stroke:var(--line);stroke-width:1.5}
+svg.wm rect.on{stroke:var(--accent);stroke-width:2.5}
+svg.wm text{fill:var(--ink);font-family:"JetBrains Mono",monospace;font-size:13px}
+svg.wm text.s{fill:var(--muted);font-size:11px}
+svg.wm path{stroke:var(--muted);stroke-width:1.6;fill:none}
+svg.wm path.on{stroke:var(--accent);stroke-width:2.6}
+svg.wm path.off{stroke-dasharray:4 4;opacity:.45}
+.cmp{width:100%;border-collapse:collapse;font-size:.9rem}
+.cmp th,.cmp td{border-top:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}
+.cmp th{font-family:"Bricolage Grotesque",sans-serif}
+.recap ul{padding-left:1.2em}
+.recap>ul>li{margin-bottom:.5em}
+.recap ul ul{color:var(--muted);font-size:.93rem}
+.small{font-size:.86rem;color:var(--muted)}
+@media (max-width:520px){body{font-size:16px}.stage{height:290px}.stage.tall{height:340px}input[type=range]{width:110px}}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Chapter contents"><ul>
+<li><a href="#top">Ch13</a></li><li><a href="#map">Map</a></li>
+<li><a class="grp" href="#s-prompt">A</a></li><li><a href="#s-prompt">Prompts</a></li><li><a href="#s-merge">Merging</a></li><li><a href="#s-esft">ES fine-tune</a></li>
+<li><a class="grp" href="#s-elm">B</a></li><li><a href="#s-elm">ELM</a></li><li><a href="#s-lmx">LMX + EvoLLM</a></li><li><a href="#s-alpha">AlphaEvolve</a></li>
+<li><a class="grp" href="#s-content">C</a></li><li><a href="#s-content">Mario + World models</a></li><li><a href="#recap">Recap</a></li>
+</ul></nav>
+
+<header class="hero" id="top">
+<p class="kicker">Chapter 13 · Neuroevolution</p>
+<h1>Synergies with Generative AI</h1>
+<p class="thesis">Evolution and big generative models patch each other's weak spots. Evolution brings <em>search, selection and diversity</em>; LLMs bring <em>smart, meaningful variation</em>. The arrows run both ways.</p>
+<div class="stage" id="hero3d" role="img" aria-label="3D view: two engines, Evolution and LLM, with streams of particles flowing in both directions"><div class="hud">drag to orbit · top stream: evolution → LLM · bottom stream: LLM → evolution</div></div>
+<div class="ctl"><button id="heroPlay" type="button">Pause</button></div>
+</header>
+
+<section id="map" class="c">
+<h2>Concept map</h2>
+<p>Three clusters. Read A and B as mirror images: in A the LLM is the <em>thing being evolved</em>; in B the LLM is a <em>part of the evolutionary machine</em>. C is about generative models that make content and worlds.</p>
+<div class="map">
+<div class="cl"><h3>A · Evolution enhances LLMs <span class="small">§13.2</span></h3>
+<ul><li><a href="#s-prompt">Evolve the input</a><ul><li>EvoPrompt (GA / DE on prompts)</li><li>Promptbreeder (evolves its own mutation-prompts)</li></ul></li>
+<li><a href="#s-merge">Evolve the combination</a><ul><li>parameter space (weights)</li><li>data flow space (layer order)</li></ul></li>
+<li><a href="#s-esft">Evolve the weights</a><ul><li>ES fine-tuning of billion-parameter LLMs</li></ul></li></ul></div>
+<div class="cl"><h3>B · LLMs enhance evolution <span class="small">§13.3</span></h3>
+<ul><li>LLM as a variation operator<ul><li><a href="#s-elm">ELM: diff mutation + MAP-Elites</a></li><li><a href="#s-lmx">LMX: crossover by prompt</a></li></ul></li>
+<li>LLM as the whole strategy<ul><li><a href="#evollm">EvoLLM: LLM proposes ES means</a></li></ul></li>
+<li>Industrial system<ul><li><a href="#s-alpha">AlphaEvolve loop</a></li></ul></li></ul></div>
+<div class="cl"><h3>C · Generative content &amp; worlds <span class="small">§13.4–13.5</span></h3>
+<ul><li><a href="#s-content">Game levels</a><ul><li>MarioGAN: evolve the latent vector</li><li>MarioGPT: ask in words, plus novelty search</li></ul></li>
+<li><a href="#wm">World models</a><ul><li>V (see) · M (remember/predict) · C (act)</li><li>train inside the dream</li></ul></li></ul></div>
+</div>
+<div class="skip"><b>SKIP-AHEAD</b> This chapter leans on earlier tools. If any feel shaky, read them first and come back: evolution strategies (Ch 2, §2.2.2), MAP-Elites (§5.4), novelty search (Ch 5), CMA-ES (Ch 2). Section B is the core for code-evolving apps, so if time is short, read <a href="#s-elm">B</a> first.</div>
+</section>
+
+<!-- ============ A1 PROMPTS ============ -->
+<section id="s-prompt" class="c">
+<p><span class="tag">A1 · §13.2.1</span></p>
+<h2>Evolving prompts, and the prompts that evolve prompts</h2>
+<p>A prompt is a string of phrases, and we can treat those phrases like genes. <b>EvoPrompt</b> runs a normal GA or differential evolution, but uses the LLM itself to carry out "cross these two prompts over" and "mutate this one".</p>
+<p><b>Promptbreeder</b> goes one level up. Each individual is a pair: a <em>task-prompt</em> P plus a <em>mutation-prompt</em> M (an instruction like "simplify this instruction"). M gets evolved too. That is the self-referential part.</p>
+<div class="jar"><strong>Jargon</strong><dl>
+<dt>task-prompt P</dt><dd>the instruction put in front of each question.</dd>
+<dt>mutation-prompt M</dt><dd>an instruction telling the LLM <em>how</em> to change P.</dd>
+<dt>hyper-mutation H</dt><dd>an instruction telling the LLM how to change M.</dd>
+<dt>thinking style</dt><dd>a seed phrase such as "let's think step by step", used to build the first population.</dd>
+<dt>binary tournament</dt><dd>pick two at random; the loser is overwritten by a mutated copy of the winner.</dd></dl></div>
+<div class="eq"><var>P</var>′ = LLM(<var>M</var> + <var>P</var>) &nbsp;&nbsp;·&nbsp;&nbsp; <var>M</var>′ = LLM(<var>H</var> + <var>M</var>)</div>
+<table class="terms">
+<tr><td>M + P</td><td>Glue the mutation-prompt in front of the task-prompt and send it to the LLM.</td></tr>
+<tr><td>P′</td><td>The LLM's answer becomes the child task-prompt.</td></tr>
+<tr><td>H + M</td><td>Same trick one level up: rewrite the mutation-prompt itself. Hyper-mutation rate (slider) = how often that happens.</td></tr></table>
+<div class="viz">
+<p class="small"><b>Toy simulation.</b> 12 phrases, each secretly helpful or harmful, plus a penalty for long prompts. Fitness is a noisy "accuracy on a Q&amp;A batch". A mutation-prompt is a mix of three edit types (add / remove / rephrase). Three variants from Fig 13.4 run side by side with binary tournaments. A real system would call an LLM here; we sample the edits directly.</p>
+<canvas class="plot" id="pbPlot" height="220"></canvas>
+<div class="legend"><span><i style="background:var(--muted)"></i>(a) direct: fixed edit mix</span><span><i style="background:var(--amber)"></i>(b) fixed mutation-prompts</span><span><i style="background:var(--accent)"></i>(c) + hyper-mutation (Promptbreeder-style)</span></div>
+<div class="ctl">
+<label for="pbN">population <input type="range" id="pbN" min="8" max="40" step="2" value="16"><output id="pbNo">16</output></label>
+<label for="pbH">hyper-mutation rate <input type="range" id="pbH" min="0" max="0.6" step="0.05" value="0.2"><output id="pbHo">0.20</output></label>
+<button id="pbRun" class="pri" type="button">Run</button><button id="pbReset" type="button">Reset</button></div>
+<div class="readout" id="pbBest"></div>
+</div>
+<p>Try it: set the hyper-mutation rate to 0 and the (c) line collapses onto (b). Raise it and the edit mix itself drifts, for example toward "add" early and "rephrase" later. Results vary per seed, so run it a few times.</p>
+<p class="small">Book results: EvoPrompt's DE variant gained up to 25% on hard BIG-Bench tasks (3.5% on average). Promptbreeder beat the hand-designed PS+ prompting on almost every dataset, and on ETHOS hate-speech classification it went from 80% to 89%.</p>
+<div class="apps"><b>FOR YOUR APPS</b> Your code-writing agent's system prompt and its "how to revise code" instruction are two separate genomes. Evolve both, and score them on a held-out batch of tasks.</div>
+<details class="q"><summary>What exactly makes Promptbreeder "self-referential"?</summary><p>It evolves the mutation-prompts that produce new task-prompts, not only the task-prompts. The improvement method is itself being improved. EvoPrompt keeps its operator instructions fixed.</p></details>
+<details class="q"><summary>Why evaluate on a batch of questions rather than one?</summary><p>One question gives a very noisy fitness. A batch estimates expected accuracy, so selection rewards prompts that generalize.</p></details>
+</section>
+
+<!-- ============ A2 MERGE ============ -->
+<section id="s-merge" class="c">
+<p><span class="tag">A2 · §13.2.2</span></p>
+<h2>Evolutionary model merging</h2>
+<p>Thousands of open models are fine-tuned copies of the same base. Merging them can produce abilities that none of them has alone. The catch: <em>how</em> to merge is usually guesswork. Akiba et al. let evolution search the recipe instead, in two spaces:</p>
+<ul><li><b>Parameter space (PS):</b> blend weights layer by layer with evolved mixing ratios. It works like mixing paint.</li>
+<li><b>Data flow space (DFS):</b> choose which layers, from which model, in what order the input passes through.</li></ul>
+<div class="eq"><var>θ</var><sub>merged</sub><sup>(ℓ)</sup> = (1 − <var>α</var><sub>ℓ</sub>) · <var>θ</var><sub>A</sub><sup>(ℓ)</sup> + <var>α</var><sub>ℓ</sub> · <var>θ</var><sub>B</sub><sup>(ℓ)</sup></div>
+<table class="terms">
+<tr><td>θ<sub>A</sub>, θ<sub>B</sub></td><td>Weights of parent A (Japanese LLM) and parent B (math LLM).</td></tr>
+<tr><td>ℓ</td><td>Layer index. Each layer (here, each layer <em>group</em>) gets its own ratio.</td></tr>
+<tr><td>α<sub>ℓ</sub></td><td>How much of B to use in layer ℓ. 0 = pure A, 1 = pure B. These numbers are the genome that evolution searches.</td></tr></table>
+<div class="viz">
+<div class="stage tall" id="merge3d" role="img" aria-label="3D fitness surface over two merge coefficients with parent models at the corners"><div class="hud" id="mergeHud">drag to orbit</div></div>
+<div class="ctl">
+<label for="mA1">α early layers <input type="range" id="mA1" min="0" max="1" step="0.01" value="0.5"><output id="mA1o">0.50</output></label>
+<label for="mA2">α late layers <input type="range" id="mA2" min="0" max="1" step="0.01" value="0.5"><output id="mA2o">0.50</output></label>
+<button id="mEvo" class="pri" type="button">Evolve merge (ES)</button><button id="mPlay" type="button">Pause spin</button></div>
+<div class="readout" id="mRead"></div>
+<p class="small"><b>Toy model.</b> The surface is a made-up "Japanese-math accuracy" as a function of two layer-group ratios. Japanese skill lives mostly in A's early layers, math reasoning in B's late layers. Amber sphere = parent A, green = parent B, the line between them = plain uniform interpolation (same α everywhere). Accent dots are a live (μ,λ)-ES population.</p>
+</div>
+<p>Notice that the best point is <em>off</em> the diagonal. A single global blend ratio cannot reach it, but a layer-wise recipe can. That is why evolving per-layer ratios matters.</p>
+<p class="small">Real numbers (Table 13.1, MGSM-JA accuracy): source models scored 9.6, 18.4 and 30.0. The PS merge reached 52.0 and PS+DFS reached 55.2, beating GPT-3.5's 50.4 with a 7–10B model.</p>
+<div class="apps"><b>FOR YOUR APPS</b> If you run several fine-tuned embedding or code models from the same base, a per-layer merge recipe found by CMA-ES on your eval set is a cheap way to get a "both skills" model without retraining.</div>
+<details class="q"><summary>PS vs DFS in one line each?</summary><p>PS blends the numbers inside layers. DFS keeps layers intact and rewires which layers the data flows through, and in what order.</p></details>
+<details class="q"><summary>Why is merging a good job for evolution rather than gradients?</summary><p>The recipe space is combinatorial (DFS) or non-differentiable through a benchmark score (PS). The only signal is "score on the task", which is exactly what black-box evolution needs.</p></details>
+</section>
+
+<!-- ============ A3 ES FT ============ -->
+<section id="s-esft" class="c">
+<p><span class="tag">A3 · §13.2.3</span></p>
+<h2>Fine-tuning LLMs with plain ES</h2>
+<p>Surprise result: vanilla evolution strategies can fine-tune LLMs with billions of parameters. They beat PPO and GRPO on the countdown arithmetic task (e.g. Qwen-2.5-3B: 10.0 raw → 32.5 GRPO → 60.5 ES) while using about 20% of the samples.</p>
+<p>The key difference is <em>where</em> each method explores. RL explores in <b>action space</b>: it makes high-reward outputs more likely. ES explores in <b>parameter space</b>: it jitters the weights themselves and keeps whatever direction helps.</p>
+<div class="skip"><b>SKIP-AHEAD</b> If the ES update below is new to you, read Ch 2 §2.2.2 first. This section assumes it.</div>
+<div class="eq"><var>θ</var> ← <var>θ</var> + <span style="display:inline-block;vertical-align:middle;text-align:center"><span style="display:block;border-bottom:1px solid currentColor;padding:0 4px">α</span><span style="display:block;padding:0 4px">n σ</span></span> Σ<sub>i=1..n</sub> <var>A</var><sub>i</sub> · <var>ε</var><sub>i</sub>,&nbsp;&nbsp; <var>ε</var><sub>i</sub> ~ 𝒩(0, I)</div>
+<table class="terms">
+<tr><td>θ</td><td>Current parameters (in the real study, all LLM weights).</td></tr>
+<tr><td>ε<sub>i</sub></td><td>A random direction. We try θ + σε<sub>i</sub>.</td></tr>
+<tr><td>σ</td><td>Perturbation size (slider). Larger σ averages the reward over a wider patch, so it smooths out jagged bumps.</td></tr>
+<tr><td>A<sub>i</sub></td><td>Reward of try i, standardized (minus the mean, divided by the std).</td></tr>
+<tr><td>n</td><td>Population size (slider). More tries give a cleaner estimate of the direction.</td></tr>
+<tr><td>α</td><td>Learning rate (slider).</td></tr></table>
+<div class="viz">
+<canvas class="plot" id="esCv" height="300"></canvas>
+<div class="legend"><span><i style="background:var(--accent)"></i>ES (circle = σ radius)</span><span><i style="background:var(--amber)"></i>gradient ascent on the same reward</span><span><i style="background:var(--leaf)"></i>broad optimum</span></div>
+<div class="ctl">
+<label for="esS">σ <input type="range" id="esS" min="0.01" max="0.3" step="0.01" value="0.12"><output id="esSo">0.12</output></label>
+<label for="esN">n <input type="range" id="esN" min="4" max="64" step="2" value="16"><output id="esNo">16</output></label>
+<label for="esA">α <input type="range" id="esA" min="0.002" max="0.04" step="0.002" value="0.012"><output id="esAo">0.012</output></label>
+<button id="esRun" class="pri" type="button">Run</button><button id="esReset" type="button">Reset</button></div>
+<div class="readout" id="esRead"></div>
+<p class="small">A real 2D ES on a reward made of one broad hill plus dense ripples, standing in for a "jagged reward landscape". The gradient follower gets stuck on the nearest ripple. Shrink σ to 0.02 and ES gets stuck too.</p>
+</div>
+<p>The book offers three explanations, still being researched: (1) a population can find one of many good weight settings (compare the lottery ticket hypothesis, §12.3.4); (2) moving weights can change the latent "behavior class" rather than memorizing outputs, and only two examples were enough to teach conciseness; (3) perturbation smooths jagged rewards. In the conciseness test, RL only got short answers by breaking the model (reward hacking). ES got them with a far smaller KL change.</p>
+<div class="jar"><strong>Jargon</strong><dl><dt>KL divergence</dt><dd>how far the fine-tuned model's output distribution moved from the base model's. Small is safer.</dd><dt>reward hacking</dt><dd>scoring well on the reward while failing the real intent.</dd></dl></div>
+<div class="apps"><b>FOR YOUR APPS</b> When your reward is sparse and comes only at the end (tests pass or fail after a long generation), parameter-space ES is a serious alternative to RL for small models or LoRA adapters.</div>
+<details class="q"><summary>Why might ES suit long-horizon reasoning rewards?</summary><p>It never needs per-token credit assignment. It scores the whole outcome for each perturbed model, so a reward that only arrives at the end is fine.</p></details>
+</section>
+
+<!-- ============ B1 ELM ============ -->
+<section id="s-elm" class="c">
+<p><span class="tag">B1 · §13.3.1</span></p>
+<h2>ELM: the LLM as a mutation operator for code</h2>
+<p>Classic genetic programming mutates code by random token edits. Most of those break the syntax or the logic. <b>Evolution through Large Models</b> swaps in a <em>diff model</em>: an LLM trained on real commit diffs, which proposes the kind of change a programmer would make.</p>
+<p>Key finding (Fig 13.7a): as the number of bugs to fix together grows, GP mutation's success rate collapses exponentially. The diff model holds up until the fifth bug, because it can make several <em>coupled</em> edits at once.</p>
+<div class="jar"><strong>Jargon</strong><dl>
+<dt>diff</dt><dd>a patch: which lines change, and how.</dd>
+<dt>MAP-Elites</dt><dd>a grid over behavior descriptors; each cell keeps its best solution (its "elite").</dd>
+<dt>QD score</dt><dd>sum of the fitness of every filled cell. It rewards quality and diversity together.</dd>
+<dt>Sodarace</dt><dd>2D robots built from masses and springs. ELM evolved the <em>Python programs</em> that build them, which makes it an indirect encoding.</dd></dl></div>
+<div class="skip"><b>SKIP-AHEAD</b> Not comfortable with MAP-Elites? Read §5.4 first. The rule below is all you need here.</div>
+<div class="eq">if cell(<var>b</var>(<var>x</var>′)) is empty &nbsp;or&nbsp; <var>f</var>(<var>x</var>′) &gt; <var>f</var>(elite) &nbsp;⇒&nbsp; replace &nbsp;&nbsp;·&nbsp;&nbsp; QD = Σ<sub>cells</sub> <var>f</var>(elite)</div>
+<table class="terms"><tr><td>x′</td><td>Child program = diff applied to a randomly chosen elite.</td></tr><tr><td>b(x′)</td><td>Its behavior descriptor: which grid cell it belongs to (here: number of terms × highest frequency used).</td></tr><tr><td>f</td><td>Fitness: how well the program fits a target curve, 1/(1+MSE).</td></tr></table>
+<div class="viz">
+<div class="row">
+<div><p class="small" style="margin:0"><b>Mock diff model</b> (semantic edits)</p><canvas class="plot" id="meG" height="200"></canvas></div>
+<div><p class="small" style="margin:0"><b>Random GP mutation</b></p><canvas class="plot" id="meR" height="200"></canvas></div>
+</div>
+<canvas class="plot" id="meQD" height="160"></canvas>
+<div class="legend"><span><i style="background:var(--accent)"></i>QD score, mock diff model</span><span><i style="background:var(--amber)"></i>QD score, random mutation</span></div>
+<div class="ctl">
+<label for="meT">LLM temperature <input type="range" id="meT" min="0.05" max="1" step="0.05" value="0.35"><output id="meTo">0.35</output></label>
+<label for="meS">iterations / frame <input type="range" id="meS" min="1" max="30" step="1" value="6"><output id="meSo">6</output></label>
+<button id="meRun" class="pri" type="button">Run</button><button id="meReset" type="button">Reset</button></div>
+<div class="readout" id="meRead"></div>
+<p class="small"><b>Toy stand-in for the LLM.</b> Programs are short expressions like <code>0.4·x² + 1.6·sin(2x)</code>, seeded with <code>return 0</code>. The "mock diff model" looks at the current error and proposes a sensible edit: add the term that best explains the error, refit all coefficients together (a coupled multi-line change), or prune a weak term. It also produces 5% broken outputs. Random mutation edits one token and breaks 25% of the time. Higher temperature makes the mock LLM pick less obvious terms, which spreads it across more cells.</p>
+</div>
+<p>ELM also <b>fine-tuned the diff model</b> on the diffs that worked during the run. That improved niches reached, QD score and the share of runnable diffs (Fig 13.9). The search produces the data that makes the operator better.</p>
+<div class="apps"><b>FOR YOUR APPS</b> This is the blueprint for a code-evolving app: archive of programs, LLM-proposed diffs, an executable evaluator, and a log of successful diffs you can later fine-tune on.</div>
+<details class="q"><summary>Why does a diff model beat random mutation more as bug count grows?</summary><p>Random edits must hit every fix independently, so the probabilities multiply and shrink fast. An LLM makes coupled, meaningful edits in one step.</p></details>
+<details class="q"><summary>Why pair ELM with MAP-Elites instead of plain hill climbing?</summary><p>It keeps many different working programs (diverse niches) as stepping stones, rather than converging on one design.</p></details>
+</section>
+
+<!-- ============ B2 LMX + EvoLLM ============ -->
+<section id="s-lmx" class="c">
+<p><span class="tag">B2 · §13.3.2–13.3.3</span></p>
+<h2>LMX: crossover by prompt, then the LLM as the whole ES</h2>
+<p><b>Language Model Crossover</b> barely needs any code. Paste k parent genomes into a prompt, one per line. A pretrained LLM continues the pattern, and the new lines are the children. It works for anything you can write as text: bit strings, equations, sentences, image prompts, Python.</p>
+<div class="eq">prompt = <var>x</var><sub>1</sub> \n <var>x</var><sub>2</sub> \n … \n <var>x</var><sub>k</sub> &nbsp;→&nbsp; children = valid lines of LLM(prompt)</div>
+<table class="terms"><tr><td>x<sub>1..k</sub></td><td>k randomly chosen parents (slider "parents in prompt").</td></tr><tr><td>LLM(prompt)</td><td>Sample a continuation. Its in-context learning picks up what the parents have in common.</td></tr><tr><td>valid lines</td><td>Parse the output and throw away malformed lines. Then the usual selection step trims the population back to n.</td></tr></table>
+<div class="viz">
+<p class="small" style="margin-top:0">Click bits to edit parents. Only the first k rows go into the prompt. The task is OneMax (count the 1s).</p>
+<div id="lmxParents"></div>
+<div class="ctl">
+<label for="lmxK">parents in prompt (k) <input type="range" id="lmxK" min="2" max="6" step="1" value="4"><output id="lmxKo">4</output></label>
+<button id="lmxGo" class="pri" type="button">Send to (mock) LLM</button><button id="lmxRnd" type="button">Random parents</button></div>
+<div class="row"><div><p class="small" style="margin:0">prompt</p><pre class="box" id="lmxPrompt"></pre></div><div><p class="small" style="margin:0">output → children</p><div class="box" id="lmxOut" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)"></div></div></div>
+<h3 style="margin-top:14px">Does it drive evolution? 20 runs, OneMax, length 16</h3>
+<canvas class="plot" id="lmxPlot" height="180"></canvas>
+<div class="legend"><span><i style="background:var(--accent)"></i>LMX (mock completer)</span><span><i style="background:var(--amber)"></i>one-point crossover</span></div>
+<div class="ctl"><button id="lmxRun" type="button">Run 20 trials</button></div>
+<p class="small"><b>Toy stand-in.</b> Our "LLM" continues the pattern by sampling each position from the parents' frequencies. That is a crude version of what in-context completion does with strings like these. Real LLMs pick up far richer structure, such as syntax and meaning. The book reports that LMX children are heritable (they resemble their parents) and that LMX reaches higher mean fitness than one-point crossover on OneMax, though it converges to the optimum less often (16/20 vs 20/20).</p>
+</div>
+
+<h3 id="evollm">EvoLLM: ask the LLM for the next ES mean <span class="small">§13.3.3</span></h3>
+<p>Next step up: let the LLM <em>be</em> the strategy. Every past evaluation goes into a context buffer. Solutions are written as <b>integers</b>, since tokenizers handle floats badly. The buffer is sorted from worst to best, a desired fitness <var>f</var><sub>query</sub> is appended, and the LLM continues with a new mean. You then sample around that mean.</p>
+<div class="eq"><var>H</var> = {<var>X</var><sub>g</sub>, <var>F</var><sub>g</sub>}<sub>g=1..G</sub> → top-<var>K</var> gens × top-<var>M</var> each → prompt + <var>f</var><sub>query</sub> → <var>x</var><sub>LLM</sub> → <var>x</var> ~ 𝒩(<var>x</var><sub>LLM</sub>, σ²)</div>
+<table class="terms"><tr><td>H</td><td>History of solutions X<sub>g</sub> and fitnesses F<sub>g</sub> for each generation g.</td></tr><tr><td>top-M</td><td>How many records go into the prompt (slider). More context means more pattern to continue.</td></tr><tr><td>f<sub>query</sub></td><td>"Give me something scoring this well". The same trick as a decision transformer.</td></tr><tr><td>x<sub>LLM</sub></td><td>The LLM's proposed mean. If it fails to improve, fall back to sampling around the best so far.</td></tr></table>
+<div class="viz">
+<div class="row"><div><canvas class="plot" id="elCv" height="260"></canvas></div><div><p class="small" style="margin:0">prompt sent this generation</p><pre class="box mono" id="elPrompt" style="max-height:260px"></pre></div></div>
+<div class="ctl">
+<label for="elM">top-M in prompt <input type="range" id="elM" min="2" max="10" step="1" value="5"><output id="elMo">5</output></label>
+<label for="elR">grid resolution <input type="range" id="elR" min="10" max="100" step="5" value="50"><output id="elRo">50</output></label>
+<button id="elStep" class="pri" type="button">Step</button><button id="elRun" type="button">Run 10</button><button id="elReset" type="button">Reset</button></div>
+<div class="readout" id="elRead"></div>
+<p class="small"><b>Toy stand-in.</b> The mock LLM reads the sorted integer records and "continues the trend": it extrapolates from the best record away from the centroid of the others. Points: muted = buffer, accent = this generation, ring = proposed mean.</p>
+</div>
+<p class="small">Book findings: EvoLLM beat random search and Gaussian hill climbing on BBOB functions, and often beat diagonal-covariance ES, usually within 10 generations. Oddly, <em>smaller</em> LLMs did better than larger ones. To scale, it splits dimensions into blocks and queries each block separately.</p>
+<div class="apps"><b>FOR YOUR APPS</b> LMX is the 10-line operator to try first on any text genome (configs, prompts, SQL, small functions). EvoLLM's lesson is about format: write numbers as integers and sort records worst to best, and the model reads the pattern far better.</div>
+<details class="q"><summary>What LLM ability makes LMX domain-general?</summary><p>In-context (few-shot) pattern completion: given a few examples, it produces new examples that share their structure.</p></details>
+<details class="q"><summary>Why does EvoLLM discretize to integers?</summary><p>Tokenizers split floats into awkward pieces, which makes the numeric pattern hard for the model to follow.</p></details>
+</section>
+
+<!-- ============ B3 ALPHAEVOLVE ============ -->
+<section id="s-alpha" class="c">
+<p><span class="tag">B3 · §13.3.4</span></p>
+<h2>AlphaEvolve: the full code-evolution loop</h2>
+<p>AlphaEvolve is ELM grown into a distributed production system. You give it a program with <code>EVOLVE</code>-marked blocks plus an <code>evaluate()</code> function. Then four parts run asynchronously:</p>
+<ul>
+<li><b>Program database</b>: a MAP-Elites and island-model hybrid archive. It keeps good <em>and</em> diverse programs.</li>
+<li><b>Prompt sampler</b>: builds a rich prompt from a parent, some "inspiration" programs, past scores and instructions.</li>
+<li><b>LLM ensemble</b>: Gemini Flash for many fast ideas, Pro for fewer deep ones. Each returns a diff, or a whole block for big changes.</li>
+<li><b>Evaluators pool</b>: runs the child program and returns one or more scores.</li></ul>
+<div class="eq">parent, insp ← DB.sample() → prompt ← build(parent, insp) → diff ← LLM(prompt) → child ← apply(parent, diff) → DB.add(child, eval(child))</div>
+<div class="viz">
+<div class="stage tall" id="alpha3d" role="img" aria-label="3D AlphaEvolve loop: program packets flow from database to prompt sampler to LLM ensemble to evaluators and back"><div class="hud" id="alphaHud">drag to orbit</div></div>
+<div class="ctl">
+<label for="aeN">parallel samples <input type="range" id="aeN" min="1" max="16" step="1" value="6"><output id="aeNo">6</output></label>
+<label for="aeS">selection pressure <input type="range" id="aeS" min="0" max="8" step="0.5" value="2.5"><output id="aeSo">2.5</output></label>
+<label for="aeMode">packets show <select id="aeMode"><option value="g">mock-LLM run</option><option value="r">random-edit run</option></select></label>
+<button id="aePlay" type="button">Pause</button><button id="aeStep" type="button">Step</button><button id="aeReset" type="button">Reset</button></div>
+<div class="row">
+<div><canvas class="plot" id="aeCurve" height="190"></canvas>
+<div class="legend"><span><i style="background:var(--accent)"></i>best score, mock-LLM mutation</span><span><i style="background:var(--amber)"></i>best score, random edits</span></div></div>
+<div><canvas class="plot" id="aeFit" height="190"></canvas>
+<div class="legend"><span><i style="background:var(--ink)"></i>target f(x)</span><span><i style="background:var(--accent)"></i>best mock-LLM program</span><span><i style="background:var(--amber)"></i>best random-edit program</span></div></div></div>
+<div class="readout" id="aeRead"></div>
+<p class="small"><b>Toy stand-in.</b> Two databases evolve in parallel under the same settings. Each generation draws "parallel samples" parents by rank (higher "selection pressure" = more exploitation of the top programs). The mock LLM edits the program using the error signal and can borrow a term from an inspiration program. The baseline makes blind token edits. Returning packets: green = new best, accent = entered the database, grey = discarded or broken.</p>
+</div>
+<p>Results across four areas:</p>
+<ul>
+<li><b>Mathematics</b>: 4×4 complex matrix multiply in 48 multiplications (Strassen-based record: 49). Over 50 open problems: matched the best known in 75%, improved in 20% (e.g. 593 spheres for the 11-D kissing number).</li>
+<li><b>Infrastructure</b>: a data-center scheduling heuristic that recovers 0.7% of Google's fleet compute, and a 23% faster matmul kernel that cut Gemini training time by 1%.</li></ul>
+<div class="skip"><b>SKIP-AHEAD</b> Read <a href="#s-elm">ELM</a> before this if you jumped here. AlphaEvolve is the same idea (LLM diffs + QD archive) with engineering added. Island models are covered in the book's GA chapters.</div>
+<div class="apps"><b>FOR YOUR APPS</b> To copy the architecture: mark the regions that may change, write a fast deterministic evaluator first, use a cheap model for volume and a strong model for depth, and keep islands so one lineage can't take over.</div>
+<details class="q"><summary>Why sample "inspirations" in addition to the parent?</summary><p>They show the LLM other successful ideas to recombine, which works like crossover, and they keep the prompt varied. That supports diversity.</p></details>
+<details class="q"><summary>What happens with very high selection pressure in the toy?</summary><p>Nearly every child comes from the top program. Early progress is fast, but the database loses variety and can stall. Low pressure explores more but improves more slowly.</p></details>
+</section>
+
+<!-- ============ C CONTENT ============ -->
+<section id="s-content" class="c">
+<p><span class="tag">C · §13.4–13.5</span></p>
+<h2>Generative content: levels, latents and dreams</h2>
+<p>Here the generative model is not an LLM operator. It is a learned <em>genotype → phenotype map</em>. Evolution searches its small input space while the model guarantees that outputs look realistic.</p>
+<h3>MarioGAN: latent variable evolution (LVE)</h3>
+<p>Train a GAN on Mario level segments, then run CMA-ES over its 32-D latent vector <var>z</var>. Fitness comes either from the level's tiles (e.g. share of ground) or from an A* agent playing it (playable? how many jumps?).</p>
+<div class="eq"><var>z</var>* = argmax<sub><var>z</var></sub> &nbsp;<var>f</var>( <var>G</var>(<var>z</var>) )</div>
+<table class="terms"><tr><td>G</td><td>Trained generator (frozen). It maps a latent vector to a level.</td></tr><tr><td>z</td><td>Latent vector: the genome. Even a random z gives a plausible-looking level.</td></tr><tr><td>f</td><td>Goal score, here "number of jumps close to the target, and playable".</td></tr></table>
+<div class="viz">
+<canvas class="plot" id="marioCv" height="170"></canvas>
+<div class="ctl">
+<label for="mTgt">target jumps <input type="range" id="mTgt" min="0" max="16" step="1" value="10"><output id="mTgto">10</output></label>
+<button id="marioEvo" class="pri" type="button">Evolve z</button><button id="marioRnd" type="button">Random z</button></div>
+<div class="readout" id="marioRead"></div>
+<p class="small"><b>Toy stand-in.</b> G here is a fixed hand-written decoder from a 6-D z to tiles, not a trained GAN. The search is a real (μ,λ)-ES over z. Tiles: ground, <span style="color:var(--leaf)">pipes</span>, <span style="color:var(--amber)">? blocks</span>, <span style="color:var(--accent)">enemies</span>.</p>
+</div>
+<table class="cmp"><tr><th></th><th>MarioGAN (LVE)</th><th>MarioGPT</th></tr>
+<tr><td>Control by</td><td>a fitness function + search in latent space</td><td>a text prompt ("many pipes, no enemies")</td></tr>
+<tr><td>Model</td><td>GAN on one-hot tiles; CMA-ES</td><td>fine-tuned GPT-2 over tile tokens, conditioned on a frozen BART encoder</td></tr>
+<tr><td>Diversity</td><td>from the optimizer</td><td>NS-MarioGPT: novelty search on predicted player paths, LLM resampling as mutation, MarioBERT fixing the seams</td></tr>
+<tr><td>Cost / caveat</td><td>a search for every request</td><td>~88% playable; may ignore part of the prompt</td></tr></table>
+
+<h3 id="wm">World models: V, M, C</h3>
+<p>Give the agent a generative model of its own world. <b>V</b> (a VAE) squeezes each frame into a small code z. <b>M</b> (an RNN) predicts the next z and holds memory h. <b>C</b> is a tiny controller acting on [z, h]. V and M train with gradients. C is small, so CMA-ES evolves it.</p>
+<div class="eq"><var>z</var><sub>t</sub> = V(<var>o</var><sub>t</sub>) &nbsp;·&nbsp; <var>a</var><sub>t</sub> = <var>W</var><sub>c</sub>[<var>z</var><sub>t</sub>, <var>h</var><sub>t</sub>] + <var>b</var><sub>c</sub> &nbsp;·&nbsp; <var>h</var><sub>t+1</sub> = M(<var>h</var><sub>t</sub>, <var>z</var><sub>t</sub>, <var>a</var><sub>t</sub>)</div>
+<table class="terms"><tr><td>o<sub>t</sub></td><td>Raw observation (pixels).</td></tr><tr><td>z<sub>t</sub></td><td>16-D compressed "what I see now". In effect, an embedding.</td></tr><tr><td>h<sub>t</sub></td><td>RNN hidden state: "what I expect next".</td></tr><tr><td>W<sub>c</sub>, b<sub>c</sub></td><td>The only evolved parameters. Linear C on z alone needs just 17×3 = 51 numbers.</td></tr></table>
+<div class="viz">
+<svg class="wm" id="wmSvg" viewBox="0 0 640 210" role="img" aria-label="V M C block diagram">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--muted);stroke:none"/></marker></defs>
+<rect x="10" y="80" width="90" height="50" rx="8" id="wEnv"/><text x="55" y="110" text-anchor="middle">Env</text>
+<rect x="160" y="20" width="110" height="50" rx="8" class="on"/><text x="215" y="44" text-anchor="middle">V (VAE)</text><text x="215" y="61" text-anchor="middle" class="s">frame → z</text>
+<rect x="160" y="140" width="110" height="50" rx="8" id="wM"/><text x="215" y="164" text-anchor="middle">M (RNN)</text><text x="215" y="181" text-anchor="middle" class="s">predicts next z</text>
+<rect x="400" y="80" width="120" height="50" rx="8" class="on" id="wC"/><text x="460" y="104" text-anchor="middle">C</text><text x="460" y="121" text-anchor="middle" class="s" id="wCt">linear</text>
+<path d="M100,95 C130,60 130,45 160,45" marker-end="url(#ar)"/><text x="104" y="58" class="s">o_t</text>
+<path d="M270,45 C340,45 360,95 400,98" class="on" marker-end="url(#ar)"/><text x="330" y="52" class="s">z_t</text>
+<path d="M215,70 L215,140" id="pZM" marker-end="url(#ar)"/>
+<path d="M270,165 C340,165 360,118 400,114" id="pHC" marker-end="url(#ar)"/><text x="330" y="175" class="s">h_t</text>
+<path d="M520,105 C600,105 600,200 300,200 C120,200 60,175 55,130" marker-end="url(#ar)"/><text x="560" y="150" class="s">a_t</text>
+</svg>
+<div class="ctl">
+<label for="wmH"><input type="checkbox" id="wmH"> feed M's memory h into C</label>
+<label for="wmC">controller <select id="wmC"><option value="lin">linear</option><option value="hid">1 hidden layer</option><option value="neat">NEAT-evolved</option></select></label></div>
+<div class="readout" id="wmRead"></div>
+<h3 style="margin-top:10px">Training inside the dream (DoomTakeCover, Table 13.4)</h3>
+<canvas class="plot" id="wmBar" height="170"></canvas>
+<div class="ctl"><label for="wmT">temperature τ <input type="range" id="wmT" min="0" max="4" step="1" value="0"><output id="wmTo">0.10</output></label></div>
+<div class="legend"><span><i style="background:var(--accent)"></i>score inside the dream</span><span><i style="background:var(--leaf)"></i>score in the real game</span><span><i style="background:var(--muted)"></i>random policy (210)</span></div>
+<p class="small">Real data from the book. CarRacing scores (§13.5.2) and DoomTakeCover survival time (task is solved at &gt;750). At low τ the dream is too predictable, so C finds exploits that do not exist in reality. Raising τ makes the dream harder and the policy transfers.</p>
+</div>
+<div class="apps"><b>FOR YOUR APPS</b> This is embedding-based decision making in its cleanest form. Freeze a strong encoder (V, your embedding model), optionally add a predictor (M), and evolve a tiny decision head (C). When you train against a learned simulator, add noise (τ) so the policy can't exploit its flaws.</div>
+<details class="q"><summary>Why keep C tiny?</summary><p>All the heavy representation learning is done by gradient descent in V and M. A small C keeps the evolutionary search space small (hundreds of parameters), where CMA-ES is very effective and credit assignment is easy.</p></details>
+<details class="q"><summary>MarioGAN vs MarioGPT: what's the core trade-off?</summary><p>LVE gives precise control through any fitness function but needs a search per request. MarioGPT answers a text request immediately but can't guarantee constraints, so it uses novelty search for diversity.</p></details>
+</section>
+
+<!-- ============ RECAP ============ -->
+<section id="recap" class="c recap">
+<h2>Recap</h2>
+<ul>
+<li><b>A · Evolution → LLMs</b><ul><li>Input: evolve prompts (EvoPrompt), and evolve the mutation-prompts too (Promptbreeder).</li><li>Combination: evolve per-layer merge ratios (PS) and layer routing (DFS).</li><li>Weights: vanilla ES fine-tunes billion-parameter LLMs. It explores parameter space, is sample-efficient, and resists reward hacking.</li></ul></li>
+<li><b>B · LLMs → evolution</b><ul><li>Operators: ELM diff mutation (with MAP-Elites, plus fine-tuning the diff model) and LMX crossover by prompt.</li><li>Strategy: EvoLLM proposes ES means from a sorted integer history.</li><li>System: AlphaEvolve combines a program DB, prompt sampler, LLM ensemble and evaluators, with real math and infrastructure wins.</li></ul></li>
+<li><b>C · Generative content</b><ul><li>LVE (MarioGAN): evolve the latent vector of a frozen generator. MarioGPT: text-conditioned levels plus novelty search.</li><li>World models: V and M learned by gradients, C evolved. Train in the dream with temperature for transfer.</li></ul></li></ul>
+<h3>Recommended next</h3>
+<ul><li>Ch 14 (what neuroevolution says about biological evolution and intelligence), the book's next step.</li><li>For code-evolving apps: revisit Ch 5 (novelty search and MAP-Elites) and Ch 9 (open-endedness), then build the AlphaEvolve-style loop with a real evaluator.</li><li>For embedding decisions: revisit Ch 7 (§7.1.2 CarRacing) next to the world-model section here.</li></ul>
+<h3>Review questions (paraphrased from §13.6)</h3>
+<details class="q"><summary>1. How does Promptbreeder's self-reference differ from EvoPrompt?</summary><p>Promptbreeder also evolves the mutation-prompts (via hyper-mutation). EvoPrompt only evolves task-prompts with fixed GA/DE operator instructions.</p></details>
+<details class="q"><summary>2. What drove EvoPrompt's gains on BIG-Bench Hard?</summary><p>An LLM performing GA/DE crossover and mutation on prompts, with selection on a dev set. DE reached up to +25% (+3.5% average).</p></details>
+<details class="q"><summary>3. Parameter space vs data flow space merging, and why can merges show new abilities?</summary><p>PS blends weights per layer. DFS picks and orders layers across models. Evolution finds unintuitive recipes that combine skills, such as Japanese plus math.</p></details>
+<details class="q"><summary>4. What do diff-based LLM mutations offer GP?</summary><p>Syntactically valid, semantically meaningful, coupled edits learned from real code changes. Success degrades far more slowly as the needed fixes grow.</p></details>
+<details class="q"><summary>5. Which LLM capability makes LMX general?</summary><p>In-context few-shot pattern completion over any textual representation.</p></details>
+<details class="q"><summary>6. How does EvoLLM change the role of the LLM in ES?</summary><p>The LLM becomes the update rule. It reads a sorted history and proposes the next search mean, instead of only generating variants.</p></details>
+<details class="q"><summary>7. MarioGAN vs MarioGPT trade-offs?</summary><p>Search-based precise control vs instant text control. Diversity comes from the optimizer vs from novelty search.</p></details>
+<details class="q"><summary>8. Roles of V, M, C, and the effect of temperature when training in the dream?</summary><p>V compresses, M predicts and remembers, C acts. Higher τ makes the dream stochastic and harder to exploit, which improves transfer to reality.</p></details>
+</section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+/* ---------- shared utilities ---------- */
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DPR=()=>Math.min(2,window.devicePixelRatio||1);
+const tok=n=>(getComputedStyle(document.documentElement).getPropertyValue(n).trim()||'#888');
+const $=id=>document.getElementById(id);
+const themeFns=[];const onTheme=f=>themeFns.push(f);
+function fireTheme(){themeFns.forEach(f=>{try{f()}catch(e){console.error(e)}})}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',fireTheme);
+new MutationObserver(fireTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fireTheme);
+const rnd=Math.random,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function randn(){let u=0,v=0;while(!u)u=rnd();while(!v)v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+const pick=a=>a[(rnd()*a.length)|0];
+function sampleW(ws){let s=0;for(const w of ws)s+=w;let r=rnd()*s;for(let i=0;i<ws.length;i++){r-=ws[i];if(r<=0)return i}return ws.length-1}
+function hexRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return[(n>>16)&255,(n>>8)&255,n&255]}
+function mix(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}
+function bindRange(id,fmt,cb){const el=$(id),o=$(id+'o');const f=()=>{o.textContent=fmt?fmt(+el.value):el.value;cb&&cb(+el.value)};el.addEventListener('input',f);f();return el}
+function visWatch(el,cb){let v=false;new IntersectionObserver(e=>{v=e[0].isIntersecting;cb&&cb(v)}).observe(el);return()=>v}
+/* canvas helper: returns ctx in CSS px */
+function ctx2d(cv){const w=cv.clientWidth||300,h=+cv.getAttribute('height');const d=DPR();if(cv.width!==Math.round(w*d)||cv.height!==Math.round(h*d)||cv.style.height!==h+'px'){cv.style.height=h+'px';cv.width=Math.round(w*d);cv.height=Math.round(h*d)}const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);return{g,w,h}}
+const redraws=[];function onResize(f){redraws.push(f)}
+let rT;window.addEventListener('resize',()=>{clearTimeout(rT);rT=setTimeout(()=>redraws.forEach(f=>f()),80)});
+onTheme(()=>redraws.forEach(f=>f()));
+/* line chart */
+function lineChart(cv,series,o){const{g,w,h}=ctx2d(cv);const P={l:38,r:8,t:10,b:24};g.clearRect(0,0,w,h);g.fillStyle=tok('--panel');g.fillRect(0,0,w,h);
+let xmax=o.xmax||1;series.forEach(s=>{if(s.xy){s.data.forEach(p=>xmax=Math.max(xmax,p[0]))}else xmax=Math.max(xmax,s.data.length-1)});
+const ymin=o.ymin??0,ymax=o.ymax??1;const X=x=>P.l+(w-P.l-P.r)*x/xmax,Y=y=>h-P.b-(h-P.t-P.b)*(y-ymin)/(ymax-ymin);
+g.strokeStyle=tok('--line');g.lineWidth=1;g.fillStyle=tok('--muted');g.font='10px "JetBrains Mono",monospace';
+for(let i=0;i<=4;i++){const y=ymin+(ymax-ymin)*i/4;g.beginPath();g.moveTo(P.l,Y(y));g.lineTo(w-P.r,Y(y));g.stroke();g.fillText((o.yfmt?o.yfmt(y):y.toFixed(2)),2,Y(y)+3)}
+g.fillText(o.xlabel||'',P.l,h-6);g.textAlign='right';g.fillText(String(Math.round(xmax)),w-P.r,h-6);g.textAlign='left';
+series.forEach(s=>{if(!s.data.length)return;g.strokeStyle=tok(s.c);g.lineWidth=s.lw||2;g.beginPath();s.data.forEach((p,i)=>{const x=s.xy?p[0]:i,y=s.xy?p[1]:p;i?g.lineTo(X(x),Y(y)):g.moveTo(X(x),Y(y))});g.stroke()})}
+
+/* ---------- 3D scene helper ---------- */
+const HAS3=typeof THREE!=='undefined';
+function Scene3D(el,o){
+ if(!HAS3){const p=document.createElement('p');p.className='fallback';p.textContent='3D view needs three.js from cdnjs, which could not be loaded here. The controls and charts below still run.';el.prepend(p);return null}
+ const R=new THREE.WebGLRenderer({antialias:true,alpha:true});R.setPixelRatio(DPR());R.setClearColor(0x000000,0);
+ el.prepend(R.domElement);const cv=R.domElement;cv.style.touchAction='pan-y';
+ const S=new THREE.Scene(),C=new THREE.PerspectiveCamera(o.fov||38,1,.1,200);
+ S.add(new THREE.AmbientLight(0xffffff,.65));const dl=new THREE.DirectionalLight(0xffffff,.65);dl.position.set(4,9,6);S.add(dl);
+ const st={th:o.th||0.7,ph:o.ph||1.05,r:o.r||10,tg:new THREE.Vector3(...(o.tg||[0,0,0]))};
+ const api={S,C,R,dirty:true,playing:!RM,tick:null,spin:o.spin||0};
+ function cam(){C.position.set(st.tg.x+st.r*Math.sin(st.ph)*Math.sin(st.th),st.tg.y+st.r*Math.cos(st.ph),st.tg.z+st.r*Math.sin(st.ph)*Math.cos(st.th));C.lookAt(st.tg);api.dirty=true}
+ api.cam=cam;api.st=st;cam();
+ let drag=null;
+ cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,t:e.pointerType};try{cv.setPointerCapture(e.pointerId)}catch(_){}} );
+ cv.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;st.th-=dx*.008;if(drag.t!=='touch')st.ph=clamp(st.ph-dy*.006,.2,1.52);cam()});
+ const end=()=>{drag=null};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+ function size(){const w=el.clientWidth||300,h=el.clientHeight||300;R.setSize(w,h);C.aspect=w/h;C.updateProjectionMatrix();api.dirty=true}
+ new ResizeObserver(size).observe(el);size();
+ let vis=false;new IntersectionObserver(e=>{vis=e[0].isIntersecting}).observe(el);
+ let last=performance.now();
+ function loop(t){requestAnimationFrame(loop);const dt=Math.min(.05,(t-last)/1000);last=t;if(!vis)return;
+  if(api.playing){if(api.spin&&!drag){st.th+=api.spin*dt;cam()}if(api.tick)api.tick(dt,t/1000);api.dirty=true}
+  if(api.dirty){R.render(S,C);api.dirty=false}}
+ requestAnimationFrame(loop);
+ return api}
+function label3(text,cvar,h){h=h||.42;const c=document.createElement('canvas');c.width=512;c.height=96;const tex=new THREE.CanvasTexture(c);
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));
+ function draw(){const g=c.getContext('2d');g.clearRect(0,0,512,96);g.font='600 42px "JetBrains Mono", monospace';g.fillStyle=tok(cvar||'--ink');g.textAlign='center';g.textBaseline='middle';g.fillText(text,256,48);tex.needsUpdate=true}
+ draw();onTheme(draw);sp.scale.set(h*512/96,h,1);return sp}
+function playBtn(btn,api,extra){if(!btn)return;const set=()=>{btn.textContent=(api&&api.playing)?'Pause':'Play'};set();btn.addEventListener('click',()=>{if(!api)return;api.playing=!api.playing;set();extra&&extra(api.playing)})}
+
+/* ---------- HERO ---------- */
+(function(){const api=Scene3D($('hero3d'),{r:10,ph:1.2,th:0.2,spin:.12});if(!api){$('heroPlay').disabled=true;return}
+ const S=api.S;const mA=new THREE.MeshPhongMaterial({shininess:40}),mB=new THREE.MeshPhongMaterial({shininess:60,flatShading:true});
+ const evo=new THREE.Mesh(new THREE.TorusKnotGeometry(.8,.25,90,12),mA);evo.position.set(-2.8,0,0);S.add(evo);
+ const llm=new THREE.Mesh(new THREE.IcosahedronGeometry(1.05,1),mB);llm.position.set(2.8,0,0);S.add(llm);
+ const lE=label3('Evolution','--amber',.5);lE.position.set(-2.8,1.7,0);S.add(lE);const lL=label3('LLM','--accent',.5);lL.position.set(2.8,1.7,0);S.add(lL);
+ const N=36,top=[],bot=[];const pg=new THREE.SphereGeometry(.09,10,8);const pA=new THREE.MeshBasicMaterial(),pB=new THREE.MeshBasicMaterial();
+ for(let i=0;i<N;i++){const a=new THREE.Mesh(pg,pA),b=new THREE.Mesh(pg,pB);S.add(a,b);top.push(a);bot.push(b)}
+ const lt=label3('search · selection · diversity','--muted',.3);lt.position.set(0,2.35,0);S.add(lt);const lb=label3('meaningful variation','--muted',.3);lb.position.set(0,-2.35,0);S.add(lb);
+ function theme(){mA.color.set(tok('--amber'));mB.color.set(tok('--accent'));pA.color.set(tok('--amber'));pB.color.set(tok('--accent'));api.dirty=true}
+ theme();onTheme(theme);
+ function place(t){for(let i=0;i<N;i++){const u=((t*.18+i/N)%1);const x=-2.8+5.6*u;top[i].position.set(x,1.9*Math.sin(Math.PI*u),.3*Math.sin(6*u+i));const v=((t*.18+i/N+.5)%1);bot[i].position.set(2.8-5.6*v,-1.9*Math.sin(Math.PI*v),.3*Math.cos(6*v+i))}}
+ place(0);api.tick=(dt,t)=>{evo.rotation.y+=dt*.6;evo.rotation.x+=dt*.25;llm.rotation.y-=dt*.4;place(t)};
+ playBtn($('heroPlay'),api)})();
+
+/* ---------- A1 PROMPTBREEDER TOY ---------- */
+(function(){
+ const PH=[["Let's think step by step",.9],["Check the answer before replying",.7],["Show your working",.6],["List what is known first",.5],["Consider edge cases",.4],["Restate the question",.3],["Explain like a good teacher",.2],["Draw a diagram of the problem",.1],["Be concise",-.1],["Make it fun",-.2],["Answer with a number only",-.4],["Skip all explanations",-.6]];
+ const STY=[["Add one more helpful instruction",[.7,.1,.2]],["Simplify this instruction",[.1,.7,.2]],["Rephrase it with an unexpected twist",[.15,.15,.7]],["Consider how a better teacher would put this",[.34,.33,.33]]];
+ const trueFit=P=>{let s=0;P.forEach(i=>s+=PH[i][1]);s-=.06*P.length*P.length;return .3+.6/(1+Math.exp(-2*(s-.5)))};
+ const noisy=P=>trueFit(P)+.04*randn();
+ function mutP(P,M){const q=P.slice();const op=sampleW(M);const free=PH.map((_,i)=>i).filter(i=>!q.includes(i));
+  if(op===0&&q.length<8&&free.length)q.push(pick(free));else if(op===1&&q.length>1)q.splice((rnd()*q.length)|0,1);else if(free.length)q[(rnd()*q.length)|0]=pick(free);return q}
+ function mutM(M){let m=M.map(v=>Math.max(.02,v+.15*randn()));const s=m.reduce((a,b)=>a+b,0);return m.map(v=>v/s)}
+ const near=M=>{let b=0,bd=1e9;STY.forEach((s,i)=>{const d=s[1].reduce((a,v,j)=>a+(v-M[j])**2,0);if(d<bd){bd=d;b=i}});return b};
+ let runs,gen,timer=null;
+ function init(){const N=+$('pbN').value;gen=0;runs=['a','b','c'].map(mode=>{const pop=[];for(let i=0;i<N;i++){const P=[(rnd()*PH.length)|0];if(rnd()<.5){const j=(rnd()*PH.length)|0;if(!P.includes(j))P.push(j)}const M=mode==='a'?[1/3,1/3,1/3]:STY[i%4][1].slice();pop.push({P,M,ev:false})}return{mode,pop,hist:[Math.max(...pop.map(u=>trueFit(u.P)))]}});draw()}
+ function step(){const h=+$('pbH').value;runs.forEach(r=>{const pop=r.pop,N=pop.length;for(let k=0;k<N;k++){const i=(rnd()*N)|0;let j=(rnd()*N)|0;if(j===i)j=(j+1)%N;const [w,l]=noisy(pop[i].P)>=noisy(pop[j].P)?[i,j]:[j,i];
+  let M=pop[w].M,ev=pop[w].ev;if(r.mode==='c'&&rnd()<h){M=mutM(M);ev=true}pop[l]={P:mutP(pop[w].P,M),M,ev}}
+  r.hist.push(Math.max(...pop.map(u=>trueFit(u.P))))});gen++;draw()}
+ function draw(){lineChart($('pbPlot'),[{data:runs[0].hist,c:'--muted'},{data:runs[1].hist,c:'--amber'},{data:runs[2].hist,c:'--accent'}],{ymin:.3,ymax:.9,xmax:120,xlabel:'generation'});
+  const pop=runs[2].pop;let b=pop[0];pop.forEach(u=>{if(trueFit(u.P)>trueFit(b.P))b=u});
+  $('pbBest').innerHTML='gen <b>'+gen+'</b> · best (c) accuracy <b>'+trueFit(b.P).toFixed(3)+'</b><br>P: “'+b.P.map(i=>PH[i][0]).join('. ')+'.”<br>M: “'+STY[near(b.M)][0]+'”'+(b.ev?' (evolved)':'')+' · edit mix add/remove/rephrase = '+b.M.map(v=>v.toFixed(2)).join(' / ')}
+ const vis=visWatch($('pbPlot'));
+ function run(){if(timer){clearInterval(timer);timer=null;$('pbRun').textContent='Run';return}$('pbRun').textContent='Pause';timer=setInterval(()=>{if(!vis())return;if(gen>=120){clearInterval(timer);timer=null;$('pbRun').textContent='Run';return}step()},60)}
+ bindRange('pbN',null,()=>{if(runs)init()});bindRange('pbH',v=>v.toFixed(2));
+ $('pbRun').addEventListener('click',run);$('pbReset').addEventListener('click',()=>{init()});
+ init();onResize(draw);
+ if(!RM){new IntersectionObserver((e,ob)=>{if(e[0].isIntersecting){ob.disconnect();if(!timer)run()}}).observe($('pbPlot'))}
+})();
+
+/* ---------- A2 MODEL MERGING 3D ---------- */
+(function(){
+ const F=(a,b)=>{const ja=Math.exp(-2.2*a*a-.5*b*b),ma=Math.exp(-2.2*(1-b)**2-.5*(1-a)**2);return Math.max(0,ja*ma+.035*Math.sin(9*a+1)*Math.cos(8*b))};
+ const acc=v=>(100*v).toFixed(1);
+ let bestDiag=0;for(let t=0;t<=1;t+=.01)bestDiag=Math.max(bestDiag,F(t,t));
+ const api=Scene3D($('merge3d'),{r:8.2,ph:.95,th:-.6,tg:[0,.6,0],spin:.08});
+ const SC=4,HS=5;const P=(a,b)=>[(a-.5)*SC,F(a,b)*HS,(b-.5)*SC];
+ let manual,stem,popM=[],bestM,surfMat,wireMat,lineMat,mats={};
+ if(api){const S=api.S;
+  const geo=new THREE.PlaneGeometry(SC,SC,48,48);geo.rotateX(-Math.PI/2);const pos=geo.attributes.position;
+  for(let i=0;i<pos.count;i++){const a=pos.getX(i)/SC+.5,b=pos.getZ(i)/SC+.5;pos.setY(i,F(a,b)*HS)}geo.computeVertexNormals();
+  surfMat=new THREE.MeshPhongMaterial({transparent:true,opacity:.72,side:THREE.DoubleSide,shininess:20});S.add(new THREE.Mesh(geo,surfMat));
+  wireMat=new THREE.LineBasicMaterial({transparent:true,opacity:.35});S.add(new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.PlaneGeometry(SC,SC,16,16).rotateX(-Math.PI/2)),wireMat));
+  const surfWire=new THREE.LineSegments(new THREE.WireframeGeometry(geo),wireMat);surfWire.material=new THREE.LineBasicMaterial({transparent:true,opacity:.12});S.add(surfWire);mats.sw=surfWire.material;
+  const sg=new THREE.SphereGeometry(.14,16,12);mats.A=new THREE.MeshPhongMaterial();mats.B=new THREE.MeshPhongMaterial();mats.man=new THREE.MeshPhongMaterial();mats.pop=new THREE.MeshBasicMaterial();mats.best=new THREE.MeshBasicMaterial();
+  const pa=new THREE.Mesh(sg,mats.A);pa.position.set(...P(0,0));const pb=new THREE.Mesh(sg,mats.B);pb.position.set(...P(1,1));S.add(pa,pb);
+  const la=label3('parent A · JA LLM','--amber',.32);la.position.set(pa.position.x,pa.position.y+.5,pa.position.z);const lb=label3('parent B · math LLM','--leaf',.32);lb.position.set(pb.position.x,pb.position.y+.5,pb.position.z);S.add(la,lb);
+  const dg=[];for(let t=0;t<=1.0001;t+=.02)dg.push(new THREE.Vector3(...P(t,t)).add(new THREE.Vector3(0,.02,0)));lineMat=new THREE.LineBasicMaterial();S.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(dg),lineMat));
+  const ax1=label3('α early →','--muted',.3);ax1.position.set(0,-.25,SC/2+.45);const ax2=label3('α late →','--muted',.3);ax2.position.set(SC/2+.55,-.25,0);S.add(ax1,ax2);
+  manual=new THREE.Mesh(new THREE.SphereGeometry(.17,16,12),mats.man);S.add(manual);
+  stem=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,1,0)]),new THREE.LineBasicMaterial());S.add(stem);mats.stem=stem.material;
+  const pg=new THREE.SphereGeometry(.08,10,8);for(let i=0;i<12;i++){const m=new THREE.Mesh(pg,mats.pop);m.visible=false;S.add(m);popM.push(m)}
+  bestM=new THREE.Mesh(new THREE.OctahedronGeometry(.2),mats.best);bestM.visible=false;S.add(bestM);
+  function theme(){surfMat.color.set(tok('--accent'));wireMat.color.set(tok('--muted'));mats.sw.color.set(tok('--ink'));lineMat.color.set(tok('--ink'));mats.A.color.set(tok('--amber'));mats.B.color.set(tok('--leaf'));mats.man.color.set(tok('--ink'));mats.stem.color.set(tok('--ink'));mats.pop.color.set(tok('--accent'));mats.best.color.set(tok('--leaf'));api.dirty=true}
+  theme();onTheme(theme);playBtn($('mPlay'),api,p=>{$('mPlay').textContent=p?'Pause spin':'Spin'});$('mPlay').textContent=api.playing?'Pause spin':'Spin'}
+ else $('mPlay').disabled=true;
+ let es=null,esBest=null;
+ function upd(){const a=+$('mA1').value,b=+$('mA2').value;if(manual){const p=P(a,b);manual.position.set(p[0],p[1]+.05,p[2]);const sp=stem.geometry.attributes.position;sp.setXYZ(0,p[0],0,p[2]);sp.setXYZ(1,p[0],p[1],p[2]);sp.needsUpdate=true;stem.geometry.computeBoundingSphere();api.dirty=true}
+  $('mRead').innerHTML='your merge: toy JA-math accuracy <b>'+acc(F(a,b))+'%</b> · parents: A '+acc(F(0,0))+'%, B '+acc(F(1,1))+'% · best uniform interpolation (diagonal) '+acc(bestDiag)+'%'+(esBest?' · <b>ES best '+acc(esBest.f)+'%</b> at α=('+esBest.a.toFixed(2)+', '+esBest.b.toFixed(2)+')':'')}
+ bindRange('mA1',v=>v.toFixed(2),upd);bindRange('mA2',v=>v.toFixed(2),upd);
+ $('mEvo').addEventListener('click',()=>{if(es)clearInterval(es);let m=[.5,.5],sig=.18,g=0;esBest=null;const lam=12,mu=4;
+  es=setInterval(()=>{const pop=[];for(let i=0;i<lam;i++){const a=clamp(m[0]+sig*randn(),0,1),b=clamp(m[1]+sig*randn(),0,1);pop.push({a,b,f:F(a,b)})}
+   pop.sort((x,y)=>y.f-x.f);m=[0,0];for(let i=0;i<mu;i++){m[0]+=pop[i].a/mu;m[1]+=pop[i].b/mu}sig*=.93;if(!esBest||pop[0].f>esBest.f)esBest=pop[0];
+   if(api){pop.forEach((p,i)=>{const q=P(p.a,p.b);popM[i].position.set(q[0],q[1]+.06,q[2]);popM[i].visible=true});const q=P(esBest.a,esBest.b);bestM.position.set(q[0],q[1]+.3,q[2]);bestM.visible=true;api.dirty=true}
+   const hud=$('mergeHud');hud.textContent='ES generation '+(++g)+' · σ='+sig.toFixed(3)+' · drag to orbit';upd();if(g>=40){clearInterval(es);es=null}},RM?40:160)});
+ upd()})();
+
+/* ---------- A3 ES vs GD ---------- */
+(function(){
+ const OX=.45,OY=.4;const Rw=(x,y)=>Math.exp(-((x-OX)**2+(y-OY)**2)/.8)+.16*Math.sin(22*x)*Math.sin(22*y);
+ const grad=(x,y)=>{const b=Math.exp(-((x-OX)**2+(y-OY)**2)/.8);return[b*(-2*(x-OX)/.8)+.16*22*Math.cos(22*x)*Math.sin(22*y),b*(-2*(y-OY)/.8)+.16*22*Math.sin(22*x)*Math.cos(22*y)]};
+ let es,gd,pe,pg,t,timer=null,img=null,imgKey='';const cv=$('esCv');
+ function reset(){es=[-.75,-.7];gd=[-.75,-.7];pe=[es.slice()];pg=[gd.slice()];t=0;draw()}
+ function step(){const s=+$('esS').value,n=+$('esN').value,a=+$('esA').value;const eps=[],F=[];
+  for(let i=0;i<n;i++){const e=[randn(),randn()];eps.push(e);F.push(Rw(es[0]+s*e[0],es[1]+s*e[1]))}
+  const mu=F.reduce((p,q)=>p+q,0)/n,sd=Math.sqrt(F.reduce((p,q)=>p+(q-mu)**2,0)/n)||1;let d=[0,0];
+  for(let i=0;i<n;i++){const A=(F[i]-mu)/sd;d[0]+=A*eps[i][0];d[1]+=A*eps[i][1]}d=d.map(v=>v*a/(n*s));
+  const L=Math.hypot(d[0],d[1]);if(L>.06)d=d.map(v=>v*.06/L);es=[clamp(es[0]+d[0],-1,1),clamp(es[1]+d[1],-1,1)];
+  const gr=grad(gd[0],gd[1]);let gs=[gr[0]*.004,gr[1]*.004];const GL=Math.hypot(...gs);if(GL>.06)gs=gs.map(v=>v*.06/GL);gd=[clamp(gd[0]+gs[0],-1,1),clamp(gd[1]+gs[1],-1,1)];
+  pe.push(es.slice());pg.push(gd.slice());t++;draw()}
+ function draw(){const{g,w,h}=ctx2d(cv);const side=Math.min(w,h);const ox=(w-side)/2;const M=v=>(v+1)/2*side;
+  const key=side+tok('--accent')+tok('--panel');if(key!==imgKey){imgKey=key;const N=110;const off=document.createElement('canvas');off.width=N;off.height=N;const og=off.getContext('2d');const id=og.createImageData(N,N);const c0=hexRgb(tok('--panel')),c1=hexRgb(tok('--accent'));
+   for(let j=0;j<N;j++)for(let i=0;i<N;i++){const x=-1+2*i/(N-1),y=1-2*j/(N-1);const v=clamp((Rw(x,y)+.2)/1.25,0,1);const c=mix(c0,c1,v*.85);const k=(j*N+i)*4;id.data[k]=c[0];id.data[k+1]=c[1];id.data[k+2]=c[2];id.data[k+3]=255}og.putImageData(id,0,0);img=off}
+  g.clearRect(0,0,w,h);g.imageSmoothingEnabled=true;g.drawImage(img,ox,0,side,side);
+  const pt=p=>[ox+M(p[0]),side-M(p[1])];
+  g.strokeStyle=tok('--leaf');g.lineWidth=2;const o=pt([OX,OY]);g.beginPath();g.arc(o[0],o[1],7,0,7);g.stroke();
+  [[pg,'--amber'],[pe,'--accent']].forEach(([path,c])=>{g.strokeStyle=tok(c);g.lineWidth=2.2;g.beginPath();path.forEach((p,i)=>{const q=pt(p);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.stroke();const q=pt(path[path.length-1]);g.fillStyle=tok(c);g.beginPath();g.arc(q[0],q[1],5,0,7);g.fill()});
+  const q=pt(es);g.strokeStyle=tok('--accent');g.setLineDash([4,3]);g.beginPath();g.arc(q[0],q[1],(+$('esS').value)/2*side,0,7);g.stroke();g.setLineDash([]);
+  $('esRead').innerHTML='step <b>'+t+'</b> · ES reward <b>'+Rw(es[0],es[1]).toFixed(3)+'</b> · gradient reward <b>'+Rw(gd[0],gd[1]).toFixed(3)+'</b> · broad-optimum reward ≈ '+Rw(OX,OY).toFixed(3)}
+ const vis=visWatch(cv);
+ function run(){if(timer){clearInterval(timer);timer=null;$('esRun').textContent='Run';return}if(t>=250)reset();$('esRun').textContent='Pause';timer=setInterval(()=>{if(!vis())return;if(t>=250){clearInterval(timer);timer=null;$('esRun').textContent='Run';return}step()},40)}
+ bindRange('esS',v=>v.toFixed(2),()=>{if(es)draw()});bindRange('esN');bindRange('esA',v=>v.toFixed(3));
+ $('esRun').addEventListener('click',run);$('esReset').addEventListener('click',reset);reset();onResize(()=>{imgKey='';draw()});
+ if(!RM)new IntersectionObserver((e,ob)=>{if(e[0].isIntersecting){ob.disconnect();if(!timer)run()}}).observe(cv)})();
+
+/* ---------- PROGRAM ENGINE (shared by ELM + AlphaEvolve) ---------- */
+const XS=[];for(let i=0;i<=40;i++)XS.push(-3+i*.15);
+const OM=[.5,1,1.5,2,3],LIB=[];for(let d=0;d<4;d++)LIB.push({k:'p',d});for(let w=0;w<5;w++){LIB.push({k:'s',w});LIB.push({k:'c',w})}
+const bv=(b,x)=>b.k==='p'?Math.pow(x,b.d):(b.k==='s'?Math.sin(OM[b.w]*x):Math.cos(OM[b.w]*x));
+const BM=LIB.map(b=>XS.map(x=>bv(b,x)));
+const TF=x=>.4*x*x-.8*x+1.6*Math.sin(2*x)+.5;const TGT=XS.map(TF);
+const dot=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s};
+const SEED={t:[{b:0,c:0}]};
+const clone=p=>({t:p.t.map(t=>({b:t.b,c:t.c}))});
+function predict(p){const y=new Array(XS.length).fill(0);for(const t of p.t){const r=BM[t.b];for(let i=0;i<y.length;i++)y[i]+=t.c*r[i]}return y}
+function score(p){if(p.bad)return 0;const y=predict(p);let s=0;for(let i=0;i<y.length;i++)s+=(y[i]-TGT[i])**2;return 1/(1+s/y.length)}
+function lstsq(bs){const n=bs.length;const A=bs.map(i=>bs.map(j=>dot(BM[i],BM[j])));const y=bs.map(i=>dot(BM[i],TGT));for(let i=0;i<n;i++)A[i][i]+=1e-3;
+ for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;[A[c],A[p]]=[A[p],A[c]];[y[c],y[p]]=[y[p],y[c]];
+  for(let r=0;r<n;r++){if(r===c)continue;const f=A[r][c]/A[c][c];for(let k=c;k<n;k++)A[r][k]-=f*A[c][k];y[r]-=f*y[c]}}return y.map((v,i)=>v/A[i][i])}
+function refit(q,noise){const c=lstsq(q.t.map(t=>t.b));q.t.forEach((t,i)=>t.c=c[i]*(1+noise*randn()))}
+function gMut(p,temp,insp){const q=clone(p);if(rnd()<.05){q.bad=1;return q}
+ const y=predict(q),r=TGT.map((v,i)=>v-y[i]);const used=new Set(q.t.map(t=>t.b));const u=rnd();
+ if(insp&&insp.t&&insp.t.length&&u<.18){const t=pick(insp.t);if(!used.has(t.b)&&q.t.length<6)q.t.push({b:t.b,c:t.c});refit(q,.12)}
+ else if(q.t.length<6&&u<.62){const cand=[],sc=[];LIB.forEach((b,j)=>{if(!used.has(j)){cand.push(j);sc.push(Math.abs(dot(r,BM[j]))/Math.sqrt(dot(BM[j],BM[j])))}});
+  if(cand.length){const mx=Math.max(...sc)||1;const j=cand[sampleW(sc.map(s=>Math.exp((s/mx-1)/temp)))];q.t.push({b:j,c:dot(r,BM[j])/dot(BM[j],BM[j])*(1+.25*randn())})}}
+ else if(q.t.length>1&&u<.82){let wi=0,wv=1e9;q.t.forEach((t,i)=>{const v=Math.abs(t.c)*Math.sqrt(dot(BM[t.b],BM[t.b]));if(v<wv){wv=v;wi=i}});q.t.splice(wi,1);refit(q,.1)}
+ else refit(q,.08);return q}
+function rMut(p){const q=clone(p);if(rnd()<.25){q.bad=1;return q}const u=rnd(),n=q.t.length;
+ if(u<.4){const t=pick(q.t);t.c=rnd()<.6?t.c+.5*randn():rnd()*6-3}else if(u<.6){pick(q.t).b=(rnd()*LIB.length)|0}
+ else if(u<.85&&n<6)q.t.push({b:(rnd()*LIB.length)|0,c:rnd()*4-2});else if(n>1)q.t.splice((rnd()*n)|0,1);else q.t[0].c+=randn();return q}
+const SUP=['','x','x²','x³'];
+function fmt(p){if(p.bad)return 'SyntaxError';return p.t.map((t,i)=>{const b=LIB[t.b];const c=t.c;let s=b.k==='p'?(b.d?Math.abs(c).toFixed(2)+'·'+SUP[b.d]:Math.abs(c).toFixed(2)):Math.abs(c).toFixed(2)+'·'+(b.k==='s'?'sin':'cos')+'('+OM[b.w]+'x)';return(i?(c<0?' − ':' + '):(c<0?'−':''))+s}).join('')}
+function desc(p){const d1=Math.min(5,p.t.length-1);let d2=0;p.t.forEach(t=>{const b=LIB[t.b];if(b.k!=='p')d2=Math.max(d2,b.w+1)});return d2*6+d1}
+
+/* ---------- B1 MAP-ELITES ---------- */
+(function(){
+ function Arch(kind){this.kind=kind;this.reset()}
+ Arch.prototype.reset=function(){this.cells=new Array(36).fill(null);this.n=0;this.hist=[[0,0]];const f=score(SEED);this.cells[desc(SEED)]={p:SEED,f};this.valid=0;this.tries=0};
+ Arch.prototype.step=function(temp){const occ=this.cells.filter(Boolean);const par=pick(occ).p;const ch=this.kind==='g'?gMut(par,temp):rMut(par);this.n++;this.tries++;
+  if(!ch.bad){this.valid++;const f=score(ch),k=desc(ch);if(!this.cells[k]||f>this.cells[k].f)this.cells[k]={p:ch,f}}if(this.n%20===0)this.hist.push([this.n,this.qd()])};
+ Arch.prototype.qd=function(){return this.cells.reduce((s,c)=>s+(c?c.f:0),0)};
+ const G=new Arch('g'),Rr=new Arch('r');const MAX=3000;let timer=null;
+ function grid(cv,A,c){const{g,w,h}=ctx2d(cv);g.clearRect(0,0,w,h);g.fillStyle=tok('--panel');g.fillRect(0,0,w,h);const L=34,B=26,cw=(w-L-6)/6,ch=(h-B-6)/6;const base=hexRgb(tok('--panel')),col=hexRgb(tok(c));
+  g.font='10px "JetBrains Mono",monospace';g.fillStyle=tok('--muted');const yl=['none','.5','1','1.5','2','3'];
+  for(let j=0;j<6;j++){g.fillText(yl[j],2,6+(5-j)*ch+ch/2+3);for(let i=0;i<6;i++){const cell=A.cells[j*6+i];const x=L+i*cw,y=6+(5-j)*ch;if(cell){const m=mix(base,col,.25+.75*cell.f);g.fillStyle='rgb('+m+')'}else g.fillStyle=tok('--bg');g.fillRect(x+1,y+1,cw-2,ch-2);g.fillStyle=tok('--muted')}}
+  for(let i=0;i<6;i++)g.fillText(String(i+1),L+i*cw+cw/2-3,h-12);g.fillText('# terms →',L,h-1);g.save();g.translate(10,h/2+30);g.restore()}
+ function draw(){grid($('meG'),G,'--accent');grid($('meR'),Rr,'--amber');
+  lineChart($('meQD'),[{data:G.hist,xy:1,c:'--accent'},{data:Rr.hist,xy:1,c:'--amber'}],{ymin:0,ymax:30,xmax:MAX,xlabel:'iterations',yfmt:v=>v.toFixed(0)});
+  const bestOf=A=>A.cells.filter(Boolean).sort((a,b)=>b.f-a.f)[0];const bg=bestOf(G),br=bestOf(Rr);const cnt=A=>A.cells.filter(Boolean).length;
+  $('meRead').innerHTML='iter <b>'+G.n+'</b> · mock diff model: <b>'+cnt(G)+'/36</b> cells, QD <b>'+G.qd().toFixed(1)+'</b>, runnable '+(100*G.valid/Math.max(1,G.tries)).toFixed(0)+'%, best <code>'+fmt(bg.p)+'</code> ('+bg.f.toFixed(3)+')<br>random: <b>'+cnt(Rr)+'/36</b> cells, QD <b>'+Rr.qd().toFixed(1)+'</b>, runnable '+(100*Rr.valid/Math.max(1,Rr.tries)).toFixed(0)+'%, best <code>'+fmt(br.p)+'</code> ('+br.f.toFixed(3)+')<br><span class="small">y-axis of grids = highest sine/cosine frequency used · target: 0.4x² − 0.8x + 1.6·sin(2x) + 0.5</span>'}
+ const vis=visWatch($('meQD'));
+ function run(){if(timer){clearInterval(timer);timer=null;$('meRun').textContent='Run';return}if(G.n>=MAX){G.reset();Rr.reset()}$('meRun').textContent='Pause';
+  timer=setInterval(()=>{if(!vis())return;const k=+$('meS').value,T=+$('meT').value;for(let i=0;i<k&&G.n<MAX;i++){G.step(T);Rr.step(T)}draw();if(G.n>=MAX){clearInterval(timer);timer=null;$('meRun').textContent='Run'}},50)}
+ bindRange('meT',v=>v.toFixed(2));bindRange('meS');$('meRun').addEventListener('click',run);$('meReset').addEventListener('click',()=>{G.reset();Rr.reset();draw()});
+ draw();onResize(draw);if(!RM)new IntersectionObserver((e,ob)=>{if(e[0].isIntersecting){ob.disconnect();if(!timer)run()}}).observe($('meQD'))})();
+
+/* ---------- B2 LMX ---------- */
+(function(){
+ const L=10,ROWS=6;let par=[];const box=$('lmxParents');
+ function rndPar(){par=[];for(let r=0;r<ROWS;r++){const s=[];for(let i=0;i<L;i++)s.push(rnd()<.5?1:0);par.push(s)}render()}
+ function render(){const k=+$('lmxK').value;box.innerHTML='';par.forEach((s,r)=>{const d=document.createElement('div');d.className='bits'+(r>=k?' off':'');const lb=document.createElement('span');lb.className='lbl';lb.textContent='x'+(r+1)+' f='+s.reduce((a,b)=>a+b,0);d.appendChild(lb);
+  s.forEach((b,i)=>{const bt=document.createElement('button');bt.type='button';bt.id='lmxb'+r+'_'+i;bt.textContent=b;bt.className=b?'on':'';bt.setAttribute('aria-label','parent '+(r+1)+' bit '+(i+1));bt.addEventListener('click',()=>{s[i]^=1;render()});d.appendChild(bt)});box.appendChild(d)});
+  $('lmxPrompt').textContent=par.slice(0,k).map(s=>s.join('')).join('\n')+'\n'}
+ function complete(ps,nOut){const k=ps.length,Lx=ps[0].length;const out=[];for(let o=0;o<nOut;o++){let s='';for(let i=0;i<Lx;i++){let c=0;ps.forEach(p=>c+=p[i]);s+=(rnd()<(c+.5)/(k+1))?'1':'0'}
+  const u=rnd();if(u<.06)s=s.slice(0,-1);else if(u<.1)s=s.slice(0,4)+'x'+s.slice(5);else if(u<.13)s+='1';out.push(s)}return out}
+ const valid=(s,Lx)=>s.length===Lx&&/^[01]+$/.test(s);
+ $('lmxGo').addEventListener('click',()=>{const k=+$('lmxK').value;const out=complete(par.slice(0,k),4);const o=$('lmxOut');o.innerHTML='';
+  out.forEach(s=>{const d=document.createElement('div');const ok=valid(s,L);d.className='out-line'+(ok?'':' bad');d.textContent=s+(ok?'   child, f='+[...s].filter(c=>c==='1').length:'   discarded (malformed)');o.appendChild(d)})});
+ $('lmxRnd').addEventListener('click',rndPar);bindRange('lmxK',null,()=>{if(par.length)render()});
+ function trials(){const T=20,G=15,n=20,Lx=16,k=4;const om=s=>s.reduce((a,b)=>a+b,0);const curves={lmx:new Array(G+1).fill(0),one:new Array(G+1).fill(0)};
+  for(const mode of ['lmx','one'])for(let t=0;t<T;t++){let P=[];for(let i=0;i<n;i++){const s=[];for(let j=0;j<Lx;j++)s.push(rnd()<.35?1:0);P.push(s)}
+   curves[mode][0]+=Math.max(...P.map(om))/T;
+   for(let g=1;g<=G;g++){const Nw=[];while(Nw.length<n){if(mode==='lmx'){const ps=[];for(let i=0;i<k;i++)ps.push(pick(P));complete(ps,3).forEach(s=>{if(valid(s,Lx))Nw.push([...s].map(Number))})}
+     else{const a=pick(P),b=pick(P),c=1+((rnd()*(Lx-1))|0);Nw.push(a.slice(0,c).concat(b.slice(c)));Nw.push(b.slice(0,c).concat(a.slice(c)))}}
+    P=P.concat(Nw).sort((x,y)=>om(y)-om(x)).slice(0,n);curves[mode][g]+=Math.max(...P.map(om))/T}}
+  last=curves;drawT()}
+ let last=null;function drawT(){if(!last){const{g,w,h}=ctx2d($('lmxPlot'));g.fillStyle=tok('--panel');g.fillRect(0,0,w,h);g.fillStyle=tok('--muted');g.font='12px "JetBrains Mono",monospace';g.fillText('press “Run 20 trials”',14,h/2);return}
+  lineChart($('lmxPlot'),[{data:last.lmx,c:'--accent'},{data:last.one,c:'--amber'}],{ymin:6,ymax:16,xlabel:'generation · mean best fitness',yfmt:v=>v.toFixed(0)})}
+ $('lmxRun').addEventListener('click',trials);rndPar();$('lmxGo').click();trials();onResize(drawT)})();
+
+/* ---------- B2b EvoLLM ---------- */
+(function(){
+ const f=(x,y)=>-((x-1.5)**2+(y+1)**2)-1.5*(2-Math.cos(2*Math.PI*(x-1.5)/2.5)-Math.cos(2*Math.PI*(y+1)/2.5));
+ let H,gen,res,lastGen=[],mean=null,fallback=false,img=null,imgKey='';const cv=$('elCv');
+ const toX=i=>-5+10*i/(res-1);const ev=p=>f(toX(p[0]),toX(p[1]));
+ function reset(){res=+$('elR').value;H=[];gen=0;mean=null;fallback=false;lastGen=[];for(let i=0;i<8;i++){const p=[(rnd()*res)|0,(rnd()*res)|0];H.push({p,f:ev(p),g:0})}buildPrompt();draw()}
+ function topM(){const M=+$('elM').value;return H.slice().sort((a,b)=>a.f-b.f).slice(-M)}
+ function buildPrompt(){const T=topM();const best=T[T.length-1].f;$('elPrompt').textContent='# sorted worst → best (integers on a '+res+'×'+res+' grid)\n'+T.map(r=>'x=['+r.p[0]+', '+r.p[1]+']  f='+r.f.toFixed(2)).join('\n')+'\nf_query='+(best+1).toFixed(2)+'\nx='}
+ function step(){const T=topM();const best=T[T.length-1];let prop;
+  if(fallback||T.length<2)prop=best.p.slice();else{const others=T.slice(0,-1);const c=[0,0];others.forEach(r=>{c[0]+=r.p[0]/others.length;c[1]+=r.p[1]/others.length});prop=[0,1].map(d=>clamp(Math.round(best.p[d]+.5*(best.p[d]-c[d])),0,res-1))}
+  mean=prop;const s=Math.max(1,res*.05);lastGen=[];gen++;for(let i=0;i<6;i++){const p=[0,1].map(d=>clamp(Math.round(prop[d]+s*randn()),0,res-1));const r={p,f:ev(p),g:gen};H.push(r);lastGen.push(r)}
+  fallback=Math.max(...lastGen.map(r=>r.f))<=best.f;buildPrompt();draw()}
+ function draw(){const{g,w,h}=ctx2d(cv);const side=Math.min(w,h),ox=(w-side)/2;const key=side+tok('--accent')+tok('--panel');
+  if(key!==imgKey){imgKey=key;const N=90;const off=document.createElement('canvas');off.width=off.height=N;const og=off.getContext('2d');const id=og.createImageData(N,N);const c0=hexRgb(tok('--panel')),c1=hexRgb(tok('--leaf'));
+   for(let j=0;j<N;j++)for(let i=0;i<N;i++){const v=f(-5+10*i/(N-1),5-10*j/(N-1));const t=clamp(1+v/50,0,1)**3;const c=mix(c0,c1,t*.8);const k=(j*N+i)*4;id.data[k]=c[0];id.data[k+1]=c[1];id.data[k+2]=c[2];id.data[k+3]=255}og.putImageData(id,0,0);img=off}
+  g.clearRect(0,0,w,h);g.drawImage(img,ox,0,side,side);const P=p=>[ox+(p[0]+.5)/res*side,side-(p[1]+.5)/res*side];
+  g.fillStyle=tok('--muted');H.forEach(r=>{if(r.g===gen&&gen)return;const q=P(r.p);g.fillRect(q[0]-2,q[1]-2,4,4)});
+  g.fillStyle=tok('--accent');lastGen.forEach(r=>{const q=P(r.p);g.beginPath();g.arc(q[0],q[1],4,0,7);g.fill()});
+  if(mean){const q=P(mean);g.strokeStyle=tok('--accent');g.lineWidth=2;g.beginPath();g.arc(q[0],q[1],9,0,7);g.stroke()}
+  const b=H.reduce((a,r)=>r.f>a.f?r:a,H[0]);$('elRead').innerHTML='generation <b>'+gen+'</b> · evaluations '+H.length+' · best f <b>'+b.f.toFixed(3)+'</b> at ['+b.p+'] (optimum f = 0)'+(fallback&&gen?' · last proposal failed → next gen samples around the best (backup strategy)':'')}
+ bindRange('elM',null,()=>{if(H)buildPrompt()});bindRange('elR',null,()=>{if(H)reset()});
+ $('elStep').addEventListener('click',step);$('elReset').addEventListener('click',reset);
+ $('elRun').addEventListener('click',()=>{let k=0;const t=setInterval(()=>{step();if(++k>=10)clearInterval(t)},RM?10:220)});
+ reset();onResize(()=>{imgKey='';draw()})})();
+
+/* ---------- B3 ALPHAEVOLVE ---------- */
+(function(){
+ function DB(kind){this.kind=kind;this.reset()}
+ DB.prototype.reset=function(){this.db=[{p:SEED,f:score(SEED)}];this.evals=0;this.hist=[[0,this.db[0].f]];this.last=[]};
+ DB.prototype.rank=function(s){const n=this.db.length;const ws=this.db.map((_,r)=>Math.exp(-s*r/Math.max(1,n-1)));return this.db[sampleW(ws)]};
+ DB.prototype.step=function(N,s){const best0=this.db[0].f;const res=[];const kids=[];
+  for(let i=0;i<N;i++){const par=this.rank(s),insp=this.rank(s*.5);const ch=this.kind==='g'?gMut(par.p,.35,insp.p):rMut(par.p);const f=ch.bad?0:score(ch);this.evals++;kids.push({p:ch,f,bad:!!ch.bad});}
+  kids.forEach(k=>{if(!k.bad)this.db.push(k)});this.db.sort((a,b)=>b.f-a.f);if(this.db.length>40)this.db.length=40;const floor=this.db[this.db.length-1].f;
+  kids.forEach(k=>res.push(k.bad?0:(k.f>best0?2:(this.db.includes(k)?1:0))));this.last=res;this.hist.push([this.evals,this.db[0].f])};
+ const G=new DB('g'),Rr=new DB('r');const MAXE=1600;
+ const api=Scene3D($('alpha3d'),{r:10.5,ph:.9,th:.5,tg:[0,.4,0]});
+ const RAD=3.3,ANG=[Math.PI*.5,0,-Math.PI*.5,Math.PI];
+ const stPos=i=>[RAD*Math.cos(ANG[i]),0,RAD*Math.sin(ANG[i])];
+ let packets=[],bars=[],mats={},prog=0;const CYC=2.4;
+ if(api){const S=api.S;mats.db=new THREE.MeshPhongMaterial();mats.ps=new THREE.MeshPhongMaterial();mats.llm=new THREE.MeshPhongMaterial({flatShading:true});mats.ev=new THREE.MeshPhongMaterial();mats.ring=new THREE.LineBasicMaterial({transparent:true,opacity:.5});
+  mats.pk=[new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial()];
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.2,.15,32),mats.db);base.position.set(...stPos(0));base.position.y=-.5;S.add(base);
+  const bg=new THREE.BoxGeometry(.22,1,.22);for(let i=0;i<16;i++){const m=new THREE.Mesh(bg,new THREE.MeshPhongMaterial());const a=i/16*Math.PI*2;const p=stPos(0);m.position.set(p[0]+.75*Math.cos(a),-.4,p[2]+.75*Math.sin(a));S.add(m);bars.push(m)}
+  const ps=new THREE.Mesh(new THREE.BoxGeometry(1.1,.8,.8),mats.ps);ps.position.set(...stPos(1));S.add(ps);
+  const l1=new THREE.Mesh(new THREE.IcosahedronGeometry(.42,0),mats.llm),l2=new THREE.Mesh(new THREE.IcosahedronGeometry(.7,1),mats.llm);const p2=stPos(2);l1.position.set(p2[0]-.7,.2,p2[2]+.5);l2.position.set(p2[0]+.4,.1,p2[2]-.3);S.add(l1,l2);
+  for(let i=0;i<4;i++){const e=new THREE.Mesh(new THREE.BoxGeometry(.38,.38,.38),mats.ev);const p=stPos(3);e.position.set(p[0]+(i%2)*.55-.27,-.1+((i/2)|0)*.5,p[2]+(i%2?.2:-.2));S.add(e)}
+  const names=[['Program database','--leaf'],['Prompt sampler','--amber'],['LLM ensemble','--accent'],['Evaluators pool','--ink']];
+  names.forEach((n,i)=>{const l=label3(n[0],n[1],.38);const p=stPos(i);l.position.set(p[0]*1.08,1.35,p[2]*1.08);S.add(l)});
+  const lf=label3('Flash','--muted',.26),lp=label3('Pro','--muted',.26);lf.position.set(l1.position.x,l1.position.y-.65,l1.position.z);lp.position.set(l2.position.x,l2.position.y-.95,l2.position.z);S.add(lf,lp);
+  const rp=[];for(let i=0;i<=96;i++){const a=i/96*Math.PI*2;rp.push(new THREE.Vector3(RAD*Math.cos(a),-.55,RAD*Math.sin(a)))}S.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rp),mats.ring));
+  const pg=new THREE.BoxGeometry(.16,.16,.16);for(let i=0;i<16;i++){const m=new THREE.Mesh(pg,mats.pk[0]);m.visible=false;S.add(m);packets.push(m)}
+  api.l1=l1;api.l2=l2;
+  function theme(){mats.db.color.set(tok('--leaf'));mats.ps.color.set(tok('--amber'));mats.llm.color.set(tok('--accent'));mats.ev.color.set(tok('--muted'));mats.ring.color.set(tok('--muted'));mats.pk[0].color.set(tok('--accent'));mats.pk[1].color.set(tok('--accent'));mats.pk[2].color.set(tok('--leaf'));mats.pk[3].color.set(tok('--muted'));colorBars();api.dirty=true}
+  theme();onTheme(theme)}
+ function colorBars(){if(!bars.length)return;const A=$('aeMode').value==='g'?G:Rr;const c0=new THREE.Color(tok('--muted')),c1=new THREE.Color(tok('--leaf'));
+  bars.forEach((b,i)=>{const e=A.db[i];const f=e?e.f:0;b.visible=!!e;b.scale.y=Math.max(.05,f*2.2);b.position.y=-.43+b.scale.y/2;b.material.color.copy(c0).lerp(c1,f)});if(api)api.dirty=true}
+ function placePackets(){if(!api)return;const N=+$('aeN').value;const A=$('aeMode').value==='g'?G:Rr;
+  packets.forEach((m,i)=>{if(i>=N){m.visible=false;return}m.visible=true;let u=clamp(prog*4.3-i*.06,0,3.999);const s=Math.floor(u),fr=u-s;const a0=ANG[s],a1=ANG[s]+(s===3?-Math.PI/2:-Math.PI/2);
+   const a=a0+(a1-a0)*fr;const rr=RAD+((i%4)-1.5)*.14;m.position.set(rr*Math.cos(a),.15+.8*Math.sin(Math.PI*fr)+((i/4)|0)*.1,rr*Math.sin(a));m.rotation.set(u*2,u*3,0);
+   const r=A.last[i];m.material=mats.pk[s<3?0:(r===2?2:(r===1?1:3))]})}
+ function genStep(){const N=+$('aeN').value,s=+$('aeS').value;if(G.evals<MAXE){G.step(N,s);Rr.step(N,s)}colorBars();drawCharts()}
+ function drawCharts(){lineChart($('aeCurve'),[{data:G.hist,xy:1,c:'--accent'},{data:Rr.hist,xy:1,c:'--amber'}],{ymin:0,ymax:1,xmax:Math.max(200,G.evals),xlabel:'evaluations'});
+  const{g,w,h}=ctx2d($('aeFit'));g.clearRect(0,0,w,h);g.fillStyle=tok('--panel');g.fillRect(0,0,w,h);const X=i=>8+(w-16)*i/(XS.length-1),Y=v=>h/2-v*(h-20)/12;
+  g.strokeStyle=tok('--line');g.beginPath();g.moveTo(8,Y(0));g.lineTo(w-8,Y(0));g.stroke();
+  [[TGT,'--ink',3],[predict(G.db[0].p),'--accent',2],[predict(Rr.db[0].p),'--amber',2]].forEach(([ys,c,lw])=>{g.strokeStyle=tok(c);g.lineWidth=lw;g.beginPath();ys.forEach((v,i)=>{i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v))});g.stroke()});
+  $('aeRead').innerHTML='evaluations <b>'+G.evals+'</b>'+(G.evals>=MAXE?' (budget reached, press Reset)':'')+'<br>mock-LLM best <b>'+G.db[0].f.toFixed(3)+'</b>: <code>'+fmt(G.db[0].p)+'</code><br>random best <b>'+Rr.db[0].f.toFixed(3)+'</b>: <code>'+fmt(Rr.db[0].p)+'</code>';
+  const hud=$('alphaHud');if(hud)hud.textContent='generation '+(G.hist.length-1)+' · '+$('aeN').value+' programs in flight · drag to orbit'}
+ if(api){api.tick=(dt,t)=>{prog+=dt/CYC;if(prog>=1){prog=0;genStep()}placePackets();if(api.l1){api.l1.rotation.y+=dt*1.5;api.l2.rotation.y-=dt*.7}}}
+ else{let vis=visWatch($('aeCurve'));let tm=null;const bt=$('aePlay');bt.textContent=RM?'Play':'Pause';const go=()=>{tm=setInterval(()=>{if(vis())genStep()},500)};if(!RM)go();bt.addEventListener('click',()=>{if(tm){clearInterval(tm);tm=null;bt.textContent='Play'}else{go();bt.textContent='Pause'}})}
+ if(api)playBtn($('aePlay'),api);
+ $('aeStep').addEventListener('click',()=>{prog=0;genStep();placePackets();if(api)api.dirty=true});
+ $('aeReset').addEventListener('click',()=>{G.reset();Rr.reset();prog=0;colorBars();drawCharts();placePackets()});
+ bindRange('aeN',null,()=>{placePackets();if(api)api.dirty=true;drawCharts&&G&&drawCharts()});bindRange('aeS',v=>v.toFixed(1));
+ $('aeMode').addEventListener('change',()=>{colorBars();placePackets()});
+ colorBars();drawCharts();placePackets();onResize(drawCharts)})();
+
+/* ---------- C1 MARIO LVE ---------- */
+(function(){
+ const W=48,H=10;
+ function gen(z){const hgt=[],gap=[],pipe=[],blk=[],en=[];for(let c=0;c<W;c++){const s=z[0]*Math.sin(c*.23+1)+z[1]*Math.sin(c*.11+2)+z[2]*Math.sin(c*.41);hgt.push(clamp(Math.round(2.5+1.3*s),1,6));
+   const q=z[3]*Math.cos(c*.37)+z[4]*Math.sin(c*.19+.5);gap.push(c>3&&c<W-4&&q>1.1);}
+  for(let c=0;c<W;c++){pipe.push(!gap[c]&&c%6===2&&c>3&&z[5]*Math.sin(c*.7+z[0])>.4);blk.push(!gap[c]&&!pipe[c]&&z[1]*Math.cos(c*.5)>.8);en.push(!gap[c]&&!pipe[c]&&((c*7+Math.round(z[2]*10))%9+9)%9===0&&z[4]>-.3&&c>4)}
+  return{hgt,gap,pipe,blk,en}}
+ function stats(L){let jumps=0,maxGap=0,run=0,maxRise=0;for(let c=0;c<W;c++){if(L.gap[c]){run++;if(run===1)jumps++;maxGap=Math.max(maxGap,run)}else run=0;if(L.pipe[c])jumps++;
+   if(c&&!L.gap[c]&&!L.gap[c-1]){const r=L.hgt[c]-L.hgt[c-1]+(L.pipe[c]?2:0);if(L.hgt[c]-L.hgt[c-1]>=2)jumps++;maxRise=Math.max(maxRise,r)}}
+  return{jumps,playable:maxGap<=3&&maxRise<=4}}
+ const fit=(z,t)=>{const s=stats(gen(z));return-Math.abs(s.jumps-t)-(s.playable?0:6)};
+ let z=[0,0,0,0,0,0].map(()=>randn()*.8),info='',timer=null;
+ function draw(){const L=gen(z),S=stats(L);const{g,w,h}=ctx2d($('marioCv'));const ts=Math.min(w/W,h/H);const ox=(w-ts*W)/2;g.clearRect(0,0,w,h);g.fillStyle=tok('--bg');g.fillRect(0,0,w,h);
+  for(let c=0;c<W;c++){const x=ox+c*ts;if(!L.gap[c]){g.fillStyle=tok('--muted');for(let r=0;r<L.hgt[c];r++)g.fillRect(x,h-(r+1)*ts,ts-.5,ts-.5)}
+   const top=L.hgt[c];if(L.pipe[c]){g.fillStyle=tok('--leaf');g.fillRect(x-ts*.1,h-(top+2)*ts,ts*1.2,ts*2-.5)}
+   if(L.blk[c]){g.fillStyle=tok('--amber');g.fillRect(x,h-(top+4)*ts,ts-.5,ts-.5)}
+   if(L.en[c]){g.fillStyle=tok('--accent');g.beginPath();g.arc(x+ts/2,h-(top+.5)*ts,ts*.4,0,7);g.fill()}}
+  $('marioRead').innerHTML='jumps needed <b>'+S.jumps+'</b> (target '+$('mTgt').value+') · playable <b>'+(S.playable?'yes':'no')+'</b> · z = ['+z.map(v=>v.toFixed(2)).join(', ')+']'+info}
+ function evolve(){if(timer)clearInterval(timer);const t=+$('mTgt').value;let m=z.slice(),sig=.6,g=0;const lam=12,mu=4;
+  timer=setInterval(()=>{const pop=[];for(let i=0;i<lam;i++){const c=m.map(v=>v+sig*randn());pop.push({c,f:fit(c,t)})}pop.sort((a,b)=>b.f-a.f);
+   m=m.map((_,d)=>pop.slice(0,mu).reduce((s,p)=>s+p.c[d],0)/mu);sig=Math.max(.08,sig*.95);z=pop[0].c;g++;info=' · ES gen '+g+', σ='+sig.toFixed(2);draw();if(g>=30||pop[0].f===0){clearInterval(timer);timer=null;info+=pop[0].f===0?' · target hit':''}draw()},RM?20:120)}
+ bindRange('mTgt',null,()=>draw());$('marioEvo').addEventListener('click',evolve);$('marioRnd').addEventListener('click',()=>{z=z.map(()=>randn()*.8);info='';draw()});draw();onResize(draw)})();
+
+/* ---------- C2 WORLD MODEL ---------- */
+(function(){
+ const SC={lin:['632 ± 251','V only, linear C: 51 evolved parameters. Wobbly but finishes most tracks.'],hid:['788 ± 141','V only, one hidden layer in C.'],neat:['893 ± 74','V only, NEAT-evolved C with mixed activation functions (Fig 13.26).']};
+ function upd(){const h=$('wmH').checked,c=$('wmC').value;$('pHC').setAttribute('class',h?'on':'off');$('pZM').setAttribute('class',h?'on':'off');$('wM').setAttribute('class',h?'on':'');$('wCt').textContent={lin:'linear',hid:'hidden layer',neat:'NEAT net'}[c];
+  let txt;if(h&&c==='lin')txt='CarRacing average score <b>906 ± 21</b> over 100 trials. V + M with a linear C: the first agent to solve CarRacing (&gt;900), in 2018.';else if(h)txt='V + M with this controller is not reported in §13.5.2. The point of the book is that M lets a <em>linear</em> C win.';else txt='CarRacing average score <b>'+SC[c][0]+'</b>. '+SC[c][1];$('wmRead').innerHTML=txt}
+ $('wmH').addEventListener('change',upd);$('wmC').addEventListener('change',upd);upd();
+ const T=[[.1,2086,193],[.5,2060,196],[1,1145,868],[1.15,918,1092],[1.3,732,753]];
+ function bars(){const i=+$('wmT').value;const{g,w,h}=ctx2d($('wmBar'));g.clearRect(0,0,w,h);g.fillStyle=tok('--panel');g.fillRect(0,0,w,h);const P={l:40,b:22,t:8};const Y=v=>h-P.b-(h-P.b-P.t)*v/2200;const gw=(w-P.l-10)/T.length;
+  g.font='10px "JetBrains Mono",monospace';g.fillStyle=tok('--muted');[0,750,1500,2100].forEach(v=>{g.fillText(v,2,Y(v)+3)});
+  T.forEach((r,k)=>{const x=P.l+k*gw;const bw=gw*.32;g.globalAlpha=k===i?1:.3;g.fillStyle=tok('--accent');g.fillRect(x+gw*.12,Y(r[1]),bw,Y(0)-Y(r[1]));g.fillStyle=tok('--leaf');g.fillRect(x+gw*.12+bw+2,Y(r[2]),bw,Y(0)-Y(r[2]));g.globalAlpha=1;g.fillStyle=k===i?tok('--ink'):tok('--muted');g.fillText('τ='+r[0],x+gw*.12,h-6)});
+  g.strokeStyle=tok('--muted');g.setLineDash([4,4]);g.beginPath();g.moveTo(P.l,Y(210));g.lineTo(w-6,Y(210));g.stroke();g.strokeStyle=tok('--leaf');g.beginPath();g.moveTo(P.l,Y(750));g.lineTo(w-6,Y(750));g.stroke();g.setLineDash([]);
+  g.fillStyle=tok('--leaf');g.fillText('solved > 750',w-90,Y(750)-4)}
+ bindRange('wmT',v=>T[v][0].toFixed(2),bars);onResize(bars)})();
+})();
+</script>
+
+</body></html>

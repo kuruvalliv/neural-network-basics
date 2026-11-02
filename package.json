@@ -1,0 +1,19 @@
+{
+  "name": "neural-network-basics",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:offline": "node tools/build_offline.mjs",
+    "build:neuroevolution": "node tools/build_neuroevolution.mjs",
+    "build:neuroevolution:offline": "node tools/build_neuroevolution_offline.mjs",
+    "test": "node tools/smoke_test.mjs",
+    "length": "node tools/word_count.mjs"
+  },
+  "devDependencies": {
+    "d3": "^7.9.0",
+    "esbuild": "^0.24.0",
+    "katex": "0.16.11",
+    "playwright": "^1.48.0",
+    "three": "^0.128.0"
+  }
+}

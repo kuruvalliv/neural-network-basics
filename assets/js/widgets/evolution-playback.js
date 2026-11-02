@@ -1,9 +1,9 @@
-import { d3, L, div, slider, choice, button, plot, legend, COLOR } from "./_lib.js";
+import { d3, L, div, slider, choice, button, plot, legend, COLOR, loadData } from "./_lib.js";
 import { SURFACES, drawContours } from "./_surface.js";
 import { fmt } from "../math.js";
 
 export default async function mount(el) {
-  const data = await (await fetch(new URL("../../../data/evolution.json", import.meta.url))).json();
+  const data = await loadData("evolution");
   let method = "ga", timer = null;
   const G = data.ga.length;
 

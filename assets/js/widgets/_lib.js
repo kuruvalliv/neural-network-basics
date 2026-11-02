@@ -2,6 +2,12 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 export { d3 };
 
+// The offline build embeds data/*.json in window.__NNB_DATA__ because file:// pages cannot fetch.
+export async function loadData(name) {
+  if (window.__NNB_DATA__?.[name]) return window.__NNB_DATA__[name];
+  return (await fetch(new URL(`../../../data/${name}.json`, import.meta.url))).json();
+}
+
 export const COLOR = {
   p: "var(--p)", q: "var(--q)", data: "var(--data)", loss: "var(--loss)",
   ink: "var(--ink)", muted: "var(--muted)", grid: "var(--grid)", accent: "var(--accent)", ok: "var(--ok)",

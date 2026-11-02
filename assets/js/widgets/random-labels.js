@@ -1,8 +1,8 @@
-import { d3, L, div, slider, button, plot, legend, COLOR } from "./_lib.js";
+import { d3, L, div, slider, button, plot, legend, COLOR, loadData } from "./_lib.js";
 import { fmt } from "../math.js";
 
 export default async function mount(el) {
-  const data = await (await fetch(new URL("../../../data/random-labels.json", import.meta.url))).json();
+  const data = await loadData("random-labels");
   const n = data.true.train.length, every = data.every, maxEp = (n - 1) * every;
   let timer = null;
 

@@ -1,4 +1,5 @@
 import { PARTS, PAGES } from "./chapters.js";
+import { enhance } from "./components.js";
 
 const doc = document.documentElement;
 const root = doc.dataset.root || ".";
@@ -10,7 +11,7 @@ const href = file => `${root}/${file}`;
 
 function setLang(lang) {
   doc.dataset.lang = lang;
-  localStorage.setItem(LANG_KEY, lang);
+  try { localStorage.setItem(LANG_KEY, lang); } catch (e) { /* some file viewers block storage */ }
   document.querySelectorAll(".lang-toggle span").forEach(s =>
     s.setAttribute("aria-current", String(s.dataset.l === lang)));
   document.dispatchEvent(new CustomEvent("langchange", { detail: lang }));
@@ -89,4 +90,5 @@ async function mountWidgets() {
 buildChrome();
 setLang(doc.dataset.lang || "en");
 renderMath();
+enhance(document.querySelector("main"));
 mountWidgets();

@@ -1,8 +1,8 @@
-import { d3, L, div, slider, button, plot, COLOR, tex } from "./_lib.js";
+import { d3, L, div, slider, button, plot, COLOR, tex, loadData } from "./_lib.js";
 import { sigmoid, fmt, linspace } from "../math.js";
 
 export default async function mount(el) {
-  const data = await (await fetch(new URL("../../../data/calibration.json", import.meta.url))).json();
+  const data = await loadData("calibration");
   const z = data.logits, y = data.y;
   const metrics = T => {
     const q = z.map(v => Math.min(Math.max(sigmoid(v / T), 1e-9), 1 - 1e-9));

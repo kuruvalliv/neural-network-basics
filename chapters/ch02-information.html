@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>2. Information, Entropy, and Cross-Entropy · Functions That Learn Functions</title>
-<script>document.documentElement.dataset.lang = localStorage.getItem("nnb-lang") || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
+<script>let l; try { l = localStorage.getItem("nnb-lang"); } catch (e) {} document.documentElement.dataset.lang = l || (navigator.language.startsWith("ja") ? "ja" : "en");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <link rel="stylesheet" href="../assets/css/book.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
@@ -18,133 +18,514 @@
   <p class="question"><span lang="en">How do we measure how well one distribution describes another?</span><span lang="ja">ある分布が別の分布をどれだけうまく表すかを、どう測るか？</span></p>
 
   <div class="box hook">
-    <p lang="en">Two forecasters, ten days. Each morning they each announce a chance of rain. Both get the direction right on 9 of the 10 days. Is one of them <em>better</em>?</p>
-    <p lang="ja">2人の予報士と10日間の記録があります。毎朝、それぞれが降水確率を発表します。どちらも10日中9日で向きを当てました。どちらかが<em>より優秀</em>と言えるでしょうか？</p>
+    <p lang="en">Two forecasters, ten days. Each morning they both announce a chance of rain. Both get the direction right on 9 of the 10 days. Is one of them <em>better</em>? If so, by how much, and measured in what units?</p>
+    <p lang="ja">2人の予報士と10日間の記録があります。毎朝、2人とも降水確率を発表します。どちらも10日中9日で向きを当てました。どちらかが<em>より優秀</em>と言えるでしょうか。言えるとしたら、どれだけ、どんな単位で測った差なのでしょうか。</p>
   </div>
 
   <figure class="widget" data-widget="forecaster-table">
     <figcaption>
-      <span lang="en">Forecaster A is always extremely confident. Forecaster B is more modest. Both miss on day 6.</span>
-      <span lang="ja">予報士 A はいつも極端に自信満々で、予報士 B は控えめです。2人とも6日目を外しています。</span>
+      <span lang="en">Forecaster A is always extremely confident. Forecaster B is more modest. Both miss on day 6. Make a guess before revealing the score.</span>
+      <span lang="ja">予報士 A はいつも極端に自信満々で、予報士 B は控えめです。2人とも6日目を外しています。スコアを表示する前に予想してみましょう。</span>
     </figcaption>
   </figure>
 
-  <p lang="en">Counting hits says they tie. But A said “1%” on a day it rained. The score that breaks the tie is <em>surprise</em>. The rest of this chapter explains why that is the right score.</p>
-  <p lang="ja">的中数で数えると引き分けです。しかし A は、実際に雨が降った日に「1%」と言っていました。この引き分けを崩すスコアが<em>驚き</em>です。この章の残りでは、なぜそれが正しいスコアなのかを説明します。</p>
+  <p lang="en">Counting hits says the two forecasters tie, yet A said “1% chance of rain” on a day it poured. This chapter builds the score that captures that, and shows that it is exactly the loss used to train neural networks.</p>
+  <p lang="ja">的中数で数えると2人は引き分けですが、A は土砂降りの日に「雨の確率1%」と言っていました。この章では、その違いをとらえるスコアを組み立て、それがニューラルネットワークの学習に使われる損失そのものであることを示します。</p>
 
-  <!-- 2.1 -->
-  <h2><span lang="en">2.1 Surprise</span><span lang="ja">2.1 驚き</span></h2>
-  <p lang="en">If you believed an event had probability $q$ and it happened, how surprised should you be? Two demands pin down the answer. A sure thing ($q=1$) should give zero surprise. For two independent events, the surprise at seeing both should be the surprise of one <em>plus</em> the surprise of the other.</p>
-  <p lang="ja">ある事象の確率を $q$ だと信じていて、それが実際に起きたとき、どれだけ驚くべきでしょうか。2つの要請で答えが決まります。確実なこと（$q=1$）の驚きは0であること。そして独立な2つの事象が両方起きたときの驚きは、それぞれの驚きの<em>和</em>になることです。</p>
+  <!-- ===== Root ===== -->
+  <div class="box claim" id="c2-root">
+    <p lang="en">Training a probabilistic model means minimizing its average surprise on data, and that is the same as pulling the model toward the truth, measured by the KL divergence.</p>
+    <p lang="ja">確率モデルを学習するとは、データ上での平均の驚きを最小にすることであり、それは KL ダイバージェンスで測ってモデルを真実へ引き寄せることと同じである。</p>
+  </div>
 
+  <h2 id="c2-map"><span lang="en">The map of this chapter</span><span lang="ja">この章の地図</span></h2>
+  <p lang="en">The claim above is the <strong>root</strong> of a tree. To believe it, you need answers to three questions, and each question is a <strong>branch</strong>. Each branch is built from a few small <strong>leaves</strong> that you can check by hand. A fourth, dashed branch collects what <em>follows</em> from the claim once it is established.</p>
+  <p lang="ja">上の結論は、木の<strong>根</strong>です。これを信じるには3つの問いに答える必要があり、それぞれの問いが<strong>枝</strong>になります。どの枝も、手で確かめられる小さな<strong>葉</strong>いくつかからできています。破線の4つ目の枝には、結論が確かめられたあとに<em>そこから導かれること</em>をまとめています。</p>
+
+  <nav class="tree" aria-label="Chapter map">
+    <p><span lang="en">Read top-down to see what the claim rests on. Click any box to jump there.</span><span lang="ja">上から下へ読むと、結論が何に支えられているかが分かります。どの箱もクリックでその場所へ移動します。</span></p>
+    <ul>
+      <li class="t-root">
+        <a class="t-node" href="#c2-root"><span class="t-title"><span lang="en">Training = minimizing average surprise on data = pulling the model toward the truth (in KL)</span><span lang="ja">学習 = データ上の平均の驚きの最小化 = モデルを真実へ引き寄せること（KL で）</span></span></a>
+        <div class="t-stem"></div>
+        <ul class="t-branches">
+          <li class="t-branch">
+            <a class="t-node" href="#c2-A"><span class="t-id">A</span><span class="t-title"><span lang="en">What is surprise?</span><span lang="ja">驚きとは何か？</span></span><span class="t-say"><span lang="en">It must be −log q, and it adds up over days.</span><span lang="ja">−log q しかありえず、日ごとに足し算になる。</span></span></a>
+            <ul class="t-leaves">
+              <li><a class="t-node" href="#c2-A1"><span class="t-id">A1</span><span class="t-title"><span lang="en">Four common-sense rules</span><span lang="ja">常識的な4つの規則</span></span></a></li>
+              <li><a class="t-node" href="#c2-A2"><span class="t-id">A2</span><span class="t-title"><span lang="en">The rules force a logarithm</span><span lang="ja">規則から対数が決まる</span></span></a></li>
+              <li><a class="t-node" href="#c2-A3"><span class="t-id">A3</span><span class="t-title"><span lang="en">A record's surprise is a sum</span><span lang="ja">記録の驚きは和</span></span></a></li>
+            </ul>
+          </li>
+          <li class="t-branch">
+            <a class="t-node" href="#c2-B"><span class="t-id">B</span><span class="t-title"><span lang="en">Why does it pull toward the truth?</span><span lang="ja">なぜ真実へ引き寄せるのか？</span></span><span class="t-say"><span lang="en">Average surprise = world's part + your mistake ≥ 0.</span><span lang="ja">平均の驚き = 世界の分 + 自分の間違い（≥ 0）。</span></span></a>
+            <ul class="t-leaves">
+              <li><a class="t-node" href="#c2-B1"><span class="t-id">B1</span><span class="t-title"><span lang="en">Entropy: the world's part</span><span lang="ja">エントロピー：世界の分</span></span></a></li>
+              <li><a class="t-node" href="#c2-B2"><span class="t-id">B2</span><span class="t-title"><span lang="en">Cross-entropy: with your belief</span><span lang="ja">交差エントロピー：自分の信念で</span></span></a></li>
+              <li><a class="t-node" href="#c2-B3"><span class="t-id">B3</span><span class="t-title"><span lang="en">KL: the difference</span><span lang="ja">KL：その差</span></span></a></li>
+              <li><a class="t-node" href="#c2-B4"><span class="t-id">B4</span><span class="t-title"><span lang="en">KL is never negative</span><span lang="ja">KL は負にならない</span></span></a></li>
+            </ul>
+          </li>
+          <li class="t-branch">
+            <a class="t-node" href="#c2-C"><span class="t-id">C</span><span class="t-title"><span lang="en">Is data enough?</span><span lang="ja">データで足りるのか？</span></span><span class="t-say"><span lang="en">The data average is a cross-entropy we can compute.</span><span lang="ja">データ上の平均は、計算できる交差エントロピー。</span></span></a>
+            <ul class="t-leaves">
+              <li><a class="t-node" href="#c2-C1"><span class="t-id">C1</span><span class="t-title"><span lang="en">Data average = cross-entropy with p̂</span><span lang="ja">データ平均 = p̂ との交差エントロピー</span></span></a></li>
+              <li><a class="t-node" href="#c2-C2"><span class="t-id">C2</span><span class="t-title"><span lang="en">Training one knob by hand</span><span lang="ja">つまみ1つを手で学習する</span></span></a></li>
+            </ul>
+          </li>
+          <li class="t-branch consequence">
+            <a class="t-node" href="#c2-D"><span class="t-id">D</span><span class="t-title"><span lang="en">What follows?</span><span lang="ja">何が導かれるか？</span></span><span class="t-say"><span lang="en">Consequences of the claim.</span><span lang="ja">結論から導かれること。</span></span></a>
+            <ul class="t-leaves">
+              <li><a class="t-node" href="#c2-D1"><span class="t-id">D1</span><span class="t-title"><span lang="en">Squared error is a special case</span><span lang="ja">二乗誤差は特別な場合</span></span></a></li>
+              <li><a class="t-node" href="#c2-D2"><span class="t-id">D2</span><span class="t-title"><span lang="en">Honesty pays</span><span lang="ja">正直が得をする</span></span></a></li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+
+  <p lang="en">As you read, a bar at the top of the screen shows where you are in this tree. Every leaf ends with an ↑ link saying which part of its branch it supports, and every branch ends with a short conclusion saying which words of the claim it explains.</p>
+  <p lang="ja">読み進めると、画面の上部のバーに、いま木のどこにいるかが表示されます。どの葉も、その枝のどの部分を支えるかを示す ↑ のリンクで終わり、どの枝も、結論のどの言葉を説明したかを述べる短いまとめで終わります。</p>
+
+  <details class="vocab">
+    <summary><span lang="en">Key words in the claim (open if a word is unclear)</span><span lang="ja">結論に出てくる言葉（分かりにくいときに開いてください）</span></summary>
+    <dl lang="en">
+      <dt>probabilistic model</dt><dd>A distribution $q$ over outcomes that we are free to change. It gives chances, not yes/no answers.</dd>
+      <dt>surprise</dt><dd>$-\log q(y)$: a number attached to an outcome $y$ you had given probability $q(y)$. Branch A explains why.</dd>
+      <dt>average</dt><dd>Either over observed days, $\frac1n\sum_i$, or over the world, $\mathbb E_{y\sim p}$. Branch C connects the two.</dd>
+      <dt>data</dt><dd>Samples $y_1,\dots,y_n$ drawn from the true distribution. A finite, noisy view of the truth.</dd>
+      <dt>truth</dt><dd>The distribution $p$ that actually generates outcomes. It is unknown, and it is itself uncertain.</dd>
+      <dt>KL divergence</dt><dd>$D_{KL}(p\|q)$, the <em>extra</em> average surprise caused by believing $q$ when the world is $p$. Not a distance: it is not symmetric.</dd>
+      <dt>training</dt><dd>Turning the model's knobs (parameters) so that a chosen number, the loss, goes down.</dd>
+    </dl>
+    <dl lang="ja">
+      <dt>確率モデル</dt><dd>結果の上の分布 $q$ で、私たちが自由に変えられるもの。「はい/いいえ」ではなく確率で答える。</dd>
+      <dt>驚き</dt><dd>$-\log q(y)$：確率 $q(y)$ を与えていた結果 $y$ に付く数。理由は枝 A で説明する。</dd>
+      <dt>平均</dt><dd>観測した日々についての $\frac1n\sum_i$ か、世界についての $\mathbb E_{y\sim p}$。枝 C で2つをつなぐ。</dd>
+      <dt>データ</dt><dd>真の分布から引かれたサンプル $y_1,\dots,y_n$。真実を有限個だけ、ノイズ込みで見たもの。</dd>
+      <dt>真実</dt><dd>実際に結果を生み出している分布 $p$。未知であり、それ自体が不確か。</dd>
+      <dt>KL ダイバージェンス</dt><dd>$D_{KL}(p\|q)$：世界が $p$ なのに $q$ を信じることで生じる、<em>余分な</em>平均の驚き。距離ではなく、対称でもない。</dd>
+      <dt>学習</dt><dd>選んだ数（損失）が下がるように、モデルのつまみ（パラメータ）を回すこと。</dd>
+    </dl>
+  </details>
+
+  <!-- ===================== Branch A ===================== -->
+  <h2 id="c2-A"><span class="t-id">A</span><span lang="en">What is surprise?</span><span lang="ja">驚きとは何か？</span></h2>
+  <div class="branch-intro">
+    <p lang="en">The claim talks about “average surprise”. Before averaging anything we need a precise score for a single outcome. This branch builds it in three steps:</p>
+    <p lang="ja">結論は「平均の驚き」について語っています。何かを平均する前に、1つの結果についての正確なスコアが必要です。この枝では3段階でそれを組み立てます：</p>
+    <ol lang="en">
+      <li><b>A1</b> write down what any sensible score must do,</li>
+      <li><b>A2</b> show that those rules leave only one formula, $-\log q$,</li>
+      <li><b>A3</b> show that for a record of many days, surprises add up.</li>
+    </ol>
+    <ol lang="ja">
+      <li><b>A1</b> まともなスコアが満たすべきことを書き出す。</li>
+      <li><b>A2</b> その規則から、式が $-\log q$ の1つしか残らないことを示す。</li>
+      <li><b>A3</b> 多くの日からなる記録では、驚きが足し算になることを示す。</li>
+    </ol>
+  </div>
+
+  <!-- A1 -->
+  <h3 id="c2-A1"><span class="t-id">A1</span><span lang="en">Four common-sense rules for a surprise score</span><span lang="ja">驚きのスコアについての常識的な4つの規則</span></h3>
+  <div class="box sclaim">
+    <p lang="en">A surprise score should depend only on the probability you gave the outcome. It should be zero for a sure thing, larger for rarer outcomes, and add up over independent events.</p>
+    <p lang="ja">驚きのスコアは、その結果に与えていた確率だけで決まるべきである。確実なことでは0、まれな結果ほど大きく、独立な事象については足し算になるべきである。</p>
+  </div>
+  <p lang="en">We want a function $s$ that turns a probability $q\in(0,1]$, the chance you announced <em>before</em> the outcome happened, into a score $s(q)\ge0$. Here are the rules:</p>
+  <p lang="ja">確率 $q\in(0,1]$（結果が起きる<em>前に</em>発表していた確率）をスコア $s(q)\ge0$ に変える関数 $s$ が欲しいのです。規則は次のとおりです：</p>
+  <ol lang="en">
+    <li><strong>R1 · Only the probability matters.</strong> Two different events that you both gave 0.3 are equally surprising when they happen.</li>
+    <li><strong>R2 · Sure things are free.</strong> $s(1)=0$: if you were certain and right, you learned nothing.</li>
+    <li><strong>R3 · Rarer is more surprising.</strong> If $q_1&lt;q_2$ then $s(q_1)&gt;s(q_2)$.</li>
+    <li><strong>R4 · Independent surprises add.</strong> If two independent events with probabilities $q_1$, $q_2$ both happen, the surprise is $s(q_1)+s(q_2)$.</li>
+  </ol>
+  <ol lang="ja">
+    <li><strong>R1・確率だけが重要。</strong>どちらにも0.3を与えていた2つの別々の事象は、起きたときに同じだけ驚く。</li>
+    <li><strong>R2・確実なことはただ。</strong>$s(1)=0$。確信していて正しかったなら、何も学んでいない。</li>
+    <li><strong>R3・まれなほど驚く。</strong>$q_1&lt;q_2$ なら $s(q_1)&gt;s(q_2)$。</li>
+    <li><strong>R4・独立な驚きは足し算。</strong>確率 $q_1$、$q_2$ の独立な2つの事象が両方起きたら、驚きは $s(q_1)+s(q_2)$。</li>
+  </ol>
+  <p lang="en">R4 is the only rule that needs a reason. Independent events have probabilities that <em>multiply</em> (Chapter 1): the chance of both is $q_1q_2$. But two separate pieces of news carry their information separately, so their surprises should <em>add</em>. Therefore $s$ must turn products into sums: $s(q_1q_2)=s(q_1)+s(q_2)$.</p>
+  <p lang="ja">理由が必要なのは R4 だけです。独立な事象の確率は<em>掛け算</em>になり（第1章）、両方が起きる確率は $q_1q_2$ です。しかし別々の2つのニュースは情報を別々に運ぶので、その驚きは<em>足し算</em>になるべきです。したがって $s$ は積を和に変えなければなりません：$s(q_1q_2)=s(q_1)+s(q_2)$。</p>
+  <div class="box worked">
+    <p lang="en">Suppose $s(0.5)=1$. “Two fair coins both land heads” has probability $0.25$, so by R4 its surprise is $1+1=2$. Three heads, probability $0.125$, must score 3. Each halving of the probability adds exactly one unit. “Multiply the probability, add to the score” is the fingerprint of a logarithm.</p>
+    <p lang="ja">$s(0.5)=1$ だとします。「公平なコイン2枚がどちらも表」の確率は $0.25$ なので、R4 よりその驚きは $1+1=2$。3枚とも表（確率 $0.125$）なら3です。確率が半分になるたびに、ちょうど1単位ずつ増えます。「確率は掛け算、スコアは足し算」は対数の指紋です。</p>
+  </div>
+  <p class="up">↑ <a href="#c2-A"><span lang="en">Supports A: these rules are the input to A2, which turns them into a formula.</span><span lang="ja">A を支える：この規則が A2 の入力になり、式に変わる。</span></a></p>
+
+  <!-- A2 -->
+  <h3 id="c2-A2"><span class="t-id">A2</span><span lang="en">The rules force a logarithm</span><span lang="ja">規則から対数が決まる</span></h3>
+  <div class="box sclaim">
+    <p lang="en">The only continuous score satisfying R1–R4 is $s(q)=-\log q$. The base of the logarithm only picks the unit: base 2 gives bits, base $e$ gives nats.</p>
+    <p lang="ja">R1〜R4 を満たす連続なスコアは $s(q)=-\log q$ だけである。対数の底は単位を選ぶだけで、底2ならビット、底 $e$ ならナット。</p>
+  </div>
+  <p lang="en">The idea of the proof: change variables so that multiplication becomes addition, then use the fact that the only continuous functions respecting addition are straight lines through the origin.</p>
+  <p lang="ja">証明の考え方：掛け算が足し算になるように変数を取り替え、足し算を保つ連続関数は原点を通る直線しかない、という事実を使います。</p>
+  <div class="derivation">
+    <div class="step"><div>$$s(q_1q_2)=s(q_1)+s(q_2)$$</div><div class="why"><span lang="en">rule R4</span><span lang="ja">規則 R4</span></div></div>
+    <div class="step"><div>$$g(t):=s(e^{-t}),\quad t\ge0$$</div><div class="why"><span lang="en">new variable $t=-\ln q$, “how small $q$ is”</span><span lang="ja">新しい変数 $t=-\ln q$、「$q$ がどれだけ小さいか」</span></div></div>
+    <div class="step"><div>$$g(t_1+t_2)=g(t_1)+g(t_2)$$</div><div class="why"><span lang="en">$e^{-(t_1+t_2)}=e^{-t_1}e^{-t_2}$, then R4</span><span lang="ja">$e^{-(t_1+t_2)}=e^{-t_1}e^{-t_2}$ を使い、R4 を適用</span></div></div>
+    <div class="step minor"><div>$$g(mt)=m\,g(t),\quad g(t/m)=g(t)/m$$</div><div class="why"><span lang="en">use the previous line repeatedly with equal pieces</span><span lang="ja">前の行を、同じ大きさの部分で繰り返し使う</span></div></div>
+    <div class="step minor"><div>$$g(r)=r\,g(1)\ \text{for every rational } r\ge0$$</div><div class="why"><span lang="en">combine the two scalings</span><span lang="ja">2つの拡大縮小を組み合わせる</span></div></div>
+    <div class="step"><div>$$g(t)=c\,t$$</div><div class="why"><span lang="en">continuity fills the gaps between rationals; $c=g(1)$</span><span lang="ja">連続性で有理数の間を埋める。$c=g(1)$</span></div></div>
+    <div class="step"><div>$$s(q)=-c\ln q,\quad c&gt;0$$</div><div class="why"><span lang="en">undo the change of variables; R3 makes $c$ positive</span><span lang="ja">変数を元に戻す。R3 から $c$ は正</span></div></div>
+  </div>
+  <p lang="en">R2 holds automatically because $\ln1=0$. The constant $c$ is just a unit. With $c=1/\ln2$ we get $-\log_2q$ in <strong>bits</strong> (one bit = the surprise of a fair coin). With $c=1$ we get $-\ln q$ in <strong>nats</strong>.</p>
+  <p lang="ja">$\ln1=0$ なので、R2 は自動的に成り立ちます。定数 $c$ は単位にすぎません。$c=1/\ln2$ なら $-\log_2q$ で単位は<strong>ビット</strong>（1ビット = 公平なコイン1回分の驚き）、$c=1$ なら $-\ln q$ で単位は<strong>ナット</strong>です。</p>
+  <div class="anatomy">
+    $$s_q(y)=-\log_2 q(y)$$
+    <p class="read" lang="en">“The surprise of outcome $y$ under belief $q$ is minus the base-2 log of the probability $q$ gave to $y$.”</p>
+    <p class="read" lang="ja">「信念 $q$ のもとでの結果 $y$ の驚きは、$q$ が $y$ に与えた確率の底2の対数にマイナスを付けたもの。」</p>
+    <table class="symbols">
+      <tr><th><span lang="en">symbol</span><span lang="ja">記号</span></th><th><span lang="en">meaning</span><span lang="ja">意味</span></th><th><span lang="en">example</span><span lang="ja">例</span></th></tr>
+      <tr><td>$y$</td><td><span lang="en">what actually happened</span><span lang="ja">実際に起きたこと</span></td><td><span lang="en">rain on day 6</span><span lang="ja">6日目の雨</span></td></tr>
+      <tr><td>$q$</td><td><span lang="en">your belief before it happened (a distribution)</span><span lang="ja">起きる前の信念（分布）</span></td><td><span lang="en">B's forecast</span><span lang="ja">B の予報</span></td></tr>
+      <tr><td>$q(y)$</td><td><span lang="en">the probability you gave the actual outcome</span><span lang="ja">実際の結果に与えていた確率</span></td><td>0.2</td></tr>
+      <tr><td>$-\log_2 q(y)$</td><td><span lang="en">surprise, in bits</span><span lang="ja">驚き（ビット）</span></td><td>2.322</td></tr>
+    </table>
+  </div>
+  <div class="box worked">
+    <p lang="en">B gave the actual outcome 0.8 on nine days: $-\log_2 0.8=0.322$ bits each. On day 6 it gave 0.2: $2.322$ bits. A gave 0.99 on hits ($0.0145$ bits) but 0.01 on the miss: $-\log_2 0.01=6.644$ bits, almost three times B's worst day.</p>
+    <p lang="ja">B は9日間、実際の結果に0.8を与えていました。それぞれ $-\log_2 0.8=0.322$ ビットです。6日目は0.2で $2.322$ ビット。A は的中した日に0.99（$0.0145$ ビット）でしたが、外した日は0.01で $-\log_2 0.01=6.644$ ビット。B の最悪の日のほぼ3倍です。</p>
+  </div>
   <details class="predict">
     <summary><span lang="en">Event A has q = 0.5 and event B has q = 0.25. How surprised should you be if both happen?</span><span lang="ja">事象 A は q = 0.5、事象 B は q = 0.25 です。両方起きたら、どれだけ驚くべきでしょうか？</span></summary>
-    <p lang="en">1 bit + 2 bits = 3 bits. The joint probability is 1/8, and $-\log_2(1/8)=3$.</p>
-    <p lang="ja">1ビット + 2ビット = 3ビットです。同時確率は1/8で、$-\log_2(1/8)=3$ になります。</p>
+    <p lang="en">1 bit + 2 bits = 3 bits, since $-\log_2(1/8)=3$. Check it with the sliders below.</p>
+    <p lang="ja">1ビット + 2ビット = 3ビットです（$-\log_2(1/8)=3$）。下のスライダーで確かめてみましょう。</p>
   </details>
-
   <figure class="widget" data-widget="surprisal-curve">
     <figcaption>
-      <span lang="en">Left: surprise as a function of the probability you assigned. Right: surprises of independent events stack.</span>
-      <span lang="ja">左：自分が割り当てた確率の関数としての驚き。右：独立な事象の驚きは積み上がる。</span>
+      <span lang="en">Left: surprise as a function of the probability you assigned. Right: surprises of independent events stack, as R4 demands.</span>
+      <span lang="ja">左：割り当てた確率の関数としての驚き。右：独立な事象の驚きは、R4 のとおり積み上がる。</span>
     </figcaption>
   </figure>
+  <p lang="en"><strong>Edge case.</strong> As $q\to0$, $-\log q\to\infty$. An outcome you called impossible is infinitely surprising, which is the score telling you never to say “impossible” about something that can happen.</p>
+  <p lang="ja"><strong>端の場合。</strong>$q\to0$ のとき $-\log q\to\infty$。ありえないと言った結果が起きると、驚きは無限大です。起こりうることを「ありえない」と言うな、とスコアが教えているのです。</p>
+  <p class="up">↑ <a href="#c2-A"><span lang="en">Supports A: this is the formula for “surprise” in the claim.</span><span lang="ja">A を支える：これが結論の「驚き」の式。</span></a></p>
 
-  <div class="box definition">
-    <p lang="en">The <strong>surprisal</strong> of an outcome $y$ under belief $q$ is $\;s_q(y)=-\log q(y)$. With $\log_2$ it is measured in <em>bits</em>, and with $\ln$ in <em>nats</em>.</p>
-    <p lang="ja">信念 $q$ のもとでの結果 $y$ の<strong>驚き（自己情報量）</strong>は $\;s_q(y)=-\log q(y)$ です。$\log_2$ を使うと単位は<em>ビット</em>、$\ln$ を使うと<em>ナット</em>になります。</p>
+  <!-- A3 -->
+  <h3 id="c2-A3"><span class="t-id">A3</span><span lang="en">The surprise of a whole record is a sum</span><span lang="ja">記録全体の驚きは和になる</span></h3>
+  <div class="box sclaim">
+    <p lang="en">For a record of independent days, total surprise is the sum of the daily surprises. That is why we work with log-probabilities rather than probabilities.</p>
+    <p lang="ja">独立な日々の記録では、全体の驚きは日ごとの驚きの和になる。だから確率そのものではなく対数確率を使う。</p>
+  </div>
+  <div class="derivation">
+    <div class="step"><div>$$q(y_1,\dots,y_n)=\prod_{i=1}^n q(y_i)$$</div><div class="why"><span lang="en">independent probabilities multiply</span><span lang="ja">独立な確率は掛け算</span></div></div>
+    <div class="step"><div>$$-\log q(y_1,\dots,y_n)=\sum_{i=1}^n-\log q(y_i)$$</div><div class="why"><span lang="en">the log turns the product into a sum (A2)</span><span lang="ja">対数が積を和に変える（A2）</span></div></div>
+  </div>
+  <div class="box worked">
+    <p lang="en">B's first six days: five hits at 0.8 and the miss at 0.2. Probability of that record: $0.8^5\times0.2=0.0655$, surprise $-\log_2 0.0655=3.93$ bits. Day by day: $5\times0.322+2.322=3.93$ bits. Same answer, but the second route only adds small numbers.</p>
+    <p lang="ja">B の最初の6日間：0.8で的中が5日、0.2で外れが1日。この記録の確率は $0.8^5\times0.2=0.0655$、驚きは $-\log_2 0.0655=3.93$ ビット。日ごとなら $5\times0.322+2.322=3.93$ ビット。同じ答えですが、2つ目の道筋は小さな数を足すだけです。</p>
+  </div>
+  <p lang="en">There is also a practical reason. A product of thousands of numbers below 1 becomes so small that the computer rounds it to exactly zero (<strong>underflow</strong>), making every long record look impossible. The sum never has that problem:</p>
+  <p lang="ja">実用的な理由もあります。1より小さい数を何千個も掛けると、値が小さくなりすぎてコンピュータはちょうど0に丸めてしまい（<strong>アンダーフロー</strong>）、どの長い記録もありえないように見えてしまいます。和ならこの問題は起きません：</p>
+  <figure class="widget" data-widget="sequence-surprise">
+    <figcaption>
+      <span lang="en">Forecaster B's ten-day pattern, repeated. Top line: the record's probability, computed by multiplying. Red curve: its surprise, computed by adding.</span>
+      <span lang="ja">予報士 B の10日間のパターンを繰り返したもの。1行目：掛け算で計算した記録の確率。赤い曲線：足し算で計算した驚き。</span>
+    </figcaption>
+  </figure>
+  <p class="up">↑ <a href="#c2-A"><span lang="en">Supports A: dividing this sum by $n$ gives the “average surprise” of the claim.</span><span lang="ja">A を支える：この和を $n$ で割ると、結論の「平均の驚き」になる。</span></a></p>
+
+  <div class="box branchsum">
+    <p lang="en"><b>A, put together:</b> surprise is $-\log q(y)$ (A1→A2), and over a record of days it adds up (A3). So “average surprise on data” in the claim means $\frac1n\sum_i-\log q(y_i)$. → <a href="#c2-root">back to the claim</a></p>
+    <p lang="ja"><b>A のまとめ：</b>驚きは $-\log q(y)$ であり（A1→A2）、日々の記録では足し算になる（A3）。したがって結論の「データ上の平均の驚き」とは $\frac1n\sum_i-\log q(y_i)$ のこと。→ <a href="#c2-root">結論に戻る</a></p>
   </div>
 
-  <!-- 2.2 -->
-  <h2><span lang="en">2.2 Entropy: the unavoidable surprise</span><span lang="ja">2.2 エントロピー：避けられない驚き</span></h2>
-  <p lang="en">Suppose you know the true distribution $p$ perfectly. You will <em>still</em> be surprised sometimes, because the world is random. Your average surprise is the <strong>entropy</strong> of $p$. It measures how unpredictable the world is in itself.</p>
-  <p lang="ja">真の分布 $p$ を完全に知っていたとしても、世界はランダムなので、ときどきは<em>やはり</em>驚きます。そのときの平均の驚きが $p$ の<strong>エントロピー</strong>です。世界そのものの予測しにくさを表します。</p>
+  <!-- ===================== Branch B ===================== -->
+  <h2 id="c2-B"><span class="t-id">B</span><span lang="en">Why does lowering surprise pull the model toward the truth?</span><span lang="ja">なぜ驚きを下げると、モデルが真実へ近づくのか？</span></h2>
+  <div class="branch-intro">
+    <p lang="en">Branch A defined surprise. Now imagine averaging it over the <em>world</em> rather than over data. This branch shows that the average splits into two parts, and that only one of them depends on the model:</p>
+    <p lang="ja">枝 A で驚きを定義しました。今度は、それをデータではなく<em>世界</em>について平均することを考えます。この枝では、その平均が2つの部分に分かれ、モデルに依存するのはそのうち1つだけであることを示します：</p>
+    <ol lang="en">
+      <li><b>B1</b> the surprise even a perfect forecaster suffers: entropy,</li>
+      <li><b>B2</b> the surprise of a forecaster with a wrong belief: cross-entropy,</li>
+      <li><b>B3</b> their difference: KL divergence,</li>
+      <li><b>B4</b> that difference is never negative, and is zero only at the truth.</li>
+    </ol>
+    <ol lang="ja">
+      <li><b>B1</b> 完璧な予報士でも被る驚き：エントロピー</li>
+      <li><b>B2</b> 誤った信念を持つ予報士の驚き：交差エントロピー</li>
+      <li><b>B3</b> その差：KL ダイバージェンス</li>
+      <li><b>B4</b> その差は決して負にならず、0になるのは真実のときだけ</li>
+    </ol>
+  </div>
 
+  <!-- B1 -->
+  <h3 id="c2-B1"><span class="t-id">B1</span><span lang="en">Entropy: the world's part</span><span lang="ja">エントロピー：世界の分</span></h3>
+  <div class="box sclaim">
+    <p lang="en">A forecaster who knows the true distribution $p$ is still surprised, on average, by $H(p)$, the entropy. It measures how unpredictable the world itself is.</p>
+    <p lang="ja">真の分布 $p$ を知っている予報士でも、平均して $H(p)$、つまりエントロピーだけ驚く。これは世界そのものの予測しにくさを測る。</p>
+  </div>
+  <div class="box worked">
+    <p lang="en">It rains on 70% of days and you know it, so you always say 0.7. Rainy days cost $-\log_2 0.7=0.515$ bits, dry days $-\log_2 0.3=1.737$ bits. Weighted by how often each happens: $0.7\times0.515+0.3\times1.737=0.881$ bits per day.</p>
+    <p lang="ja">70%の日に雨が降り、あなたはそれを知っているので、いつも0.7と言います。雨の日は $-\log_2 0.7=0.515$ ビット、晴れの日は $-\log_2 0.3=1.737$ ビット。それぞれが起きる頻度で重み付けすると、$0.7\times0.515+0.3\times1.737=0.881$ ビット/日です。</p>
+  </div>
+  <div class="anatomy">
+    $$H(p)=\mathbb E_{y\sim p}\big[-\log p(y)\big]=-\sum_y p(y)\log p(y)$$
+    <p class="read" lang="en">“Entropy is the expected surprise, under the true belief, of outcomes drawn from the truth.”</p>
+    <p class="read" lang="ja">「エントロピーとは、真実から引かれる結果の、真の信念のもとでの驚きの期待値である。」</p>
+    <table class="symbols">
+      <tr><th><span lang="en">piece</span><span lang="ja">部分</span></th><th><span lang="en">role</span><span lang="ja">役割</span></th><th><span lang="en">example</span><span lang="ja">例</span></th></tr>
+      <tr><td>$\sum_y$</td><td><span lang="en">visit every possible outcome</span><span lang="ja">起こりうるすべての結果をめぐる</span></td><td><span lang="en">rain, dry</span><span lang="ja">雨、晴れ</span></td></tr>
+      <tr><td>$p(y)$</td><td><span lang="en">how often it happens (the weight)</span><span lang="ja">起きる頻度（重み）</span></td><td>0.7, 0.3</td></tr>
+      <tr><td>$-\log p(y)$</td><td><span lang="en">how surprising it is under the truth</span><span lang="ja">真実のもとでの驚き</span></td><td>0.515, 1.737</td></tr>
+    </table>
+  </div>
+  <p lang="en">A certain world ($p=1$) has $H=0$. Where is entropy largest? Set its slope to zero:</p>
+  <p lang="ja">確実な世界（$p=1$）では $H=0$ です。エントロピーが最大になるのはどこでしょうか。傾きを0とおきます：</p>
+  <div class="derivation">
+    <div class="step"><div>$$H(p)=-p\log_2p-(1-p)\log_2(1-p)$$</div><div class="why"><span lang="en">two outcomes, $p=p(\text{rain})$</span><span lang="ja">結果は2つ、$p=p(\text{雨})$</span></div></div>
+    <div class="step minor"><div>$$\tfrac{d}{dp}\big[-p\log_2p\big]=-\log_2p-\tfrac1{\ln2}$$</div><div class="why"><span lang="en">product rule</span><span lang="ja">積の微分</span></div></div>
+    <div class="step minor"><div>$$\tfrac{d}{dp}\big[-(1-p)\log_2(1-p)\big]=\log_2(1-p)+\tfrac1{\ln2}$$</div><div class="why"><span lang="en">same rule; the chain rule flips the sign</span><span lang="ja">同じ規則。連鎖律で符号が反転</span></div></div>
+    <div class="step"><div>$$H'(p)=\log_2\frac{1-p}{p}=0\iff p=\tfrac12$$</div><div class="why"><span lang="en">the $\frac1{\ln2}$ terms cancel; a log is zero only at 1</span><span lang="ja">$\frac1{\ln2}$ の項が消える。対数が0になるのは1のときだけ</span></div></div>
+  </div>
   <figure class="widget" data-widget="entropy-coin">
     <figcaption>
-      <span lang="en">Entropy of a rain/no-rain distribution. It is largest for a fair coin and zero for a certain outcome.</span>
-      <span lang="ja">雨/晴れの分布のエントロピー。公平なコインで最大になり、結果が確実なら0になります。</span>
+      <span lang="en">Entropy of a rain/no-rain world. It peaks at 1 bit for a fair coin.</span>
+      <span lang="ja">雨/晴れの世界のエントロピー。公平なコインで最大の1ビットになる。</span>
     </figcaption>
   </figure>
+  <p class="up">↑ <a href="#c2-B"><span lang="en">Supports B: this is the part of average surprise that no model can remove.</span><span lang="ja">B を支える：これは平均の驚きのうち、どのモデルにも取り除けない部分。</span></a></p>
 
-  <div class="box definition">
-    $$H(p)=\mathbb E_{y\sim p}\big[-\log p(y)\big]=-\sum_y p(y)\log p(y).$$
+  <!-- B2 -->
+  <h3 id="c2-B2"><span class="t-id">B2</span><span lang="en">Cross-entropy: surprise with your belief</span><span lang="ja">交差エントロピー：自分の信念での驚き</span></h3>
+  <div class="box sclaim">
+    <p lang="en">If the world follows $p$ but you believe $q$, your average surprise is the cross-entropy $H(p,q)$: weights from the world, surprise from your belief.</p>
+    <p lang="ja">世界が $p$ に従っているのに $q$ を信じているなら、平均の驚きは交差エントロピー $H(p,q)$ になる。重みは世界から、驚きは自分の信念から来る。</p>
   </div>
+  <p lang="en">The only change from B1 is which distribution sits where. Outcomes still happen as often as the world says ($p$), but you are scored by what you announced ($q$).</p>
+  <p lang="ja">B1 との違いは、どの分布がどこに入るかだけです。結果は相変わらず世界の言う頻度（$p$）で起きますが、採点は自分が発表したもの（$q$）で行われます。</p>
+  <div class="anatomy">
+    $$H(p,q)=-\sum_y\underbrace{p(y)}_{\text{how often}}\;\underbrace{\log q(y)}_{\text{your belief}}$$
+  </div>
+  <div class="box worked">
+    <p lang="en">The world rains 70% of the time.</p>
+    <ul lang="en">
+      <li>You always say 0.5: $H(p,q)=0.7\times1+0.3\times1=1$ bit.</li>
+      <li>You always say 0.9: $H(p,q)=0.7\times0.152+0.3\times3.322=1.103$ bits.</li>
+    </ul>
+    <p lang="en">Both are worse than the $0.881$ bits of B1.</p>
+    <p lang="ja">世界では70%の日に雨が降ります。</p>
+    <ul lang="ja">
+      <li>いつも0.5と言う場合：$H(p,q)=0.7\times1+0.3\times1=1$ ビット。</li>
+      <li>いつも0.9と言う場合：$H(p,q)=0.7\times0.152+0.3\times3.322=1.103$ ビット。</li>
+    </ul>
+    <p lang="ja">どちらも B1 の $0.881$ ビットより悪くなっています。</p>
+  </div>
+  <p class="up">↑ <a href="#c2-B"><span lang="en">Supports B: this is the “average surprise” of a model, measured against the world.</span><span lang="ja">B を支える：これは世界を基準に測った、モデルの「平均の驚き」。</span></a></p>
 
-  <!-- 2.3 -->
-  <h2><span lang="en">2.3 Cross-entropy and KL: the cost of a wrong belief</span><span lang="ja">2.3 交差エントロピーとKL：誤った信念のコスト</span></h2>
-  <p lang="en">Now suppose the world follows $p$ but you believe $q$. You score yourself with $-\log q(y)$, while the outcomes $y$ are drawn from $p$. Your average surprise is the <strong>cross-entropy</strong> $H(p,q)$. It splits into two parts. The first is the surprise you could never avoid, $H(p)$. The second is the extra surprise caused by believing the wrong thing, the <strong>KL divergence</strong>.</p>
-  <p lang="ja">今度は、世界は $p$ に従っているのに、あなたは $q$ を信じているとします。結果 $y$ は $p$ から出てくるのに、自分の採点には $-\log q(y)$ を使うことになります。このときの平均の驚きが<strong>交差エントロピー</strong> $H(p,q)$ です。これは2つの部分に分かれます。1つ目はどうしても避けられない驚き $H(p)$、2つ目は誤った信念のせいで生じる余分な驚きで、これを <strong>KLダイバージェンス</strong>と呼びます。</p>
-
-  <details class="predict">
-    <summary><span lang="en">Can you drag the bars so that the red KL part becomes negative?</span><span lang="ja">棒をドラッグして、赤い KL の部分を負にできるでしょうか？</span></summary>
-    <p lang="en">No. Believing anything other than the truth can only add surprise on average. This is Gibbs' inequality.</p>
-    <p lang="ja">できません。真実以外のものを信じると、平均の驚きは増えることしかありません。これがギブスの不等式です。</p>
-  </details>
-
+  <!-- B3 -->
+  <h3 id="c2-B3"><span class="t-id">B3</span><span lang="en">KL divergence: the difference</span><span lang="ja">KL ダイバージェンス：その差</span></h3>
+  <div class="box sclaim">
+    <p lang="en">Cross-entropy splits exactly into the world's part plus a penalty for the wrong belief: $H(p,q)=H(p)+D_{KL}(p\|q)$.</p>
+    <p lang="ja">交差エントロピーは、ちょうど世界の分と、誤った信念の罰金の和に分かれる：$H(p,q)=H(p)+D_{KL}(p\|q)$。</p>
+  </div>
+  <div class="derivation">
+    <div class="step"><div>$$H(p,q)-H(p)=-\sum_y p(y)\log q(y)+\sum_y p(y)\log p(y)$$</div><div class="why"><span lang="en">write out B2 minus B1</span><span lang="ja">B2 から B1 を引いて書き出す</span></div></div>
+    <div class="step"><div>$$=\sum_y p(y)\big(\log p(y)-\log q(y)\big)$$</div><div class="why"><span lang="en">both sums share the weights $p(y)$</span><span lang="ja">2つの和は重み $p(y)$ を共有している</span></div></div>
+    <div class="step"><div>$$=\sum_y p(y)\log\frac{p(y)}{q(y)}=:D_{KL}(p\|q)$$</div><div class="why"><span lang="en">$\log a-\log b=\log\frac ab$; give it a name</span><span lang="ja">$\log a-\log b=\log\frac ab$。名前を付ける</span></div></div>
+  </div>
+  <div class="anatomy">
+    $$\underbrace{H(p,q)}_{\text{your average surprise}}=\underbrace{H(p)}_{\text{the world's randomness}}+\underbrace{D_{KL}(p\|q)}_{\text{your mistake}}$$
+    <p class="read" lang="en">“What you pay = what anyone would pay + a penalty for believing the wrong thing.”</p>
+    <p class="read" lang="ja">「あなたが支払う額 = 誰でも支払う額 + 間違ったことを信じた罰金。」</p>
+  </div>
+  <div class="box worked">
+    <p lang="en">From B1 and B2: saying 0.5 costs $1-0.881=0.119$ bits extra; saying 0.9 costs $1.103-0.881=0.222$ bits extra. Over-confidence (0.9) costs almost twice as much as hedging (0.5), even though 0.9 is closer to 0.7 in ordinary distance.</p>
+    <p lang="ja">B1 と B2 より：0.5と言うと $1-0.881=0.119$ ビットの余分、0.9と言うと $1.103-0.881=0.222$ ビットの余分。ふつうの距離では0.9のほうが0.7に近いのに、自信過剰（0.9）のコストは予防線（0.5）のほぼ2倍です。</p>
+  </div>
   <figure class="widget" data-widget="kl-bars">
     <figcaption>
-      <span lang="en">Four kinds of weather. Blue is the truth p, orange the belief q. The stacked bar splits cross-entropy into entropy plus KL.</span>
-      <span lang="ja">4種類の天気。青が真実 p、オレンジが信念 q です。積み上げ棒は、交差エントロピーをエントロピーと KL の和に分解しています。</span>
+      <span lang="en">Four kinds of weather. Blue is the truth p, orange the belief q. The stacked bar is the split above: entropy plus KL.</span>
+      <span lang="ja">4種類の天気。青が真実 p、オレンジが信念 q。積み上げ棒は上の分解（エントロピー + KL）です。</span>
     </figcaption>
   </figure>
-
-  <div class="box definition">
-    $$H(p,q)=-\sum_y p(y)\log q(y),\qquad D_{KL}(p\,\|\,q)=\sum_y p(y)\log\frac{p(y)}{q(y)}=H(p,q)-H(p)\;\ge 0.$$
-    <p lang="en">Equality holds only when $q=p$. See <a href="../appendices/c-proofs.html#gibbs">Appendix C</a> for a three-line proof using $\log t\le t-1$.</p>
-    <p lang="ja">等号が成り立つのは $q=p$ のときだけです。$\log t\le t-1$ を使った3行の証明は<a href="../appendices/c-proofs.html#gibbs">付録C</a>にあります。</p>
-  </div>
-
   <div class="box misconception">
-    <p lang="en">“KL is the distance between two distributions.” Not quite. Press <em>Swap</em>: $D_{KL}(p\|q)\neq D_{KL}(q\|p)$ in general. KL measures the cost of using $q$ <em>when the world is $p$</em>, and that direction matters.</p>
-    <p lang="ja">「KL は2つの分布の距離である」というのは正確ではありません。<em>入れ替え</em>ボタンを押してみましょう。一般に $D_{KL}(p\|q)\neq D_{KL}(q\|p)$ です。KL が測っているのは「<em>世界が $p$ のときに</em> $q$ を使うコスト」であり、向きに意味があります。</p>
+    <p lang="en">“KL is a distance.” Not quite: with $p=0.7$, $q=0.9$, $D_{KL}(p\|q)=0.222$ bits but $D_{KL}(q\|p)=0.168$ bits. KL is the cost of using $q$ <em>when the world is $p$</em>; swapping them asks a different question.</p>
+    <p lang="ja">「KL は距離である」というのは正確ではありません。$p=0.7$、$q=0.9$ では $D_{KL}(p\|q)=0.222$ ビットですが、$D_{KL}(q\|p)=0.168$ ビットです。KL は「<em>世界が $p$ のときに</em> $q$ を使うコスト」であり、入れ替えると別の問いになります。</p>
+  </div>
+  <p class="up">↑ <a href="#c2-B"><span lang="en">Supports B: only this part depends on the model, so it is what training can change.</span><span lang="ja">B を支える：モデルに依存するのはこの部分だけなので、学習で変えられるのはここ。</span></a></p>
+
+  <!-- B4 -->
+  <h3 id="c2-B4"><span class="t-id">B4</span><span lang="en">KL is never negative</span><span lang="ja">KL は決して負にならない</span></h3>
+  <div class="box sclaim">
+    <p lang="en">$D_{KL}(p\|q)\ge0$, with equality only when $q=p$. The whole proof rests on one picture: the curve $\ln t$ never rises above the straight line $t-1$.</p>
+    <p lang="ja">$D_{KL}(p\|q)\ge0$ で、等号は $q=p$ のときだけ。証明全体は1枚の図に支えられている。曲線 $\ln t$ は、直線 $t-1$ より上には決して出ない。</p>
+  </div>
+  <p lang="en">The line $t-1$ is the tangent of $\ln t$ at $t=1$: both equal 0 there and both have slope 1. Because $\ln t$ bends downward everywhere, it stays below that tangent.</p>
+  <p lang="ja">直線 $t-1$ は、$t=1$ での $\ln t$ の接線です。そこでは両方とも0で、傾きもどちらも1です。$\ln t$ はどこでも下向きに曲がっているので、その接線より下にとどまります。</p>
+  <figure class="widget" data-widget="log-tangent">
+    <figcaption>
+      <span lang="en">The inequality $\ln t\le t-1$, applied to the two ratios $t=q(y)/p(y)$.</span>
+      <span lang="ja">不等式 $\ln t\le t-1$ を、2つの比 $t=q(y)/p(y)$ に当てはめたもの。</span>
+    </figcaption>
+  </figure>
+  <div class="derivation">
+    <div class="step"><div>$$\ln t\le t-1,\ \text{equality iff } t=1$$</div><div class="why"><span lang="en">the picture above</span><span lang="ja">上の図</span></div></div>
+    <div class="step"><div>$$-D_{KL}(p\|q)=\sum_y p(y)\ln\frac{q(y)}{p(y)}$$</div><div class="why"><span lang="en">flip the fraction to flip the sign (nats)</span><span lang="ja">分数を逆にすると符号が反転（ナット）</span></div></div>
+    <div class="step"><div>$$\le\sum_y p(y)\Big(\frac{q(y)}{p(y)}-1\Big)$$</div><div class="why"><span lang="en">apply the inequality with $t=q(y)/p(y)$; weights $p(y)\ge0$ keep the direction</span><span lang="ja">$t=q(y)/p(y)$ として不等式を使う。重み $p(y)\ge0$ なので向きは変わらない</span></div></div>
+    <div class="step"><div>$$=\sum_y q(y)-\sum_y p(y)=1-1=0$$</div><div class="why"><span lang="en">both are distributions, so each sums to 1</span><span lang="ja">どちらも分布なので合計は1</span></div></div>
+    <div class="step"><div>$$\Rightarrow D_{KL}(p\|q)\ge0$$</div><div class="why"><span lang="en">equality needs $t=1$ everywhere, i.e. $q=p$</span><span lang="ja">等号にはどこでも $t=1$、つまり $q=p$ が必要</span></div></div>
+  </div>
+  <div class="box worked">
+    <p lang="en">Check with $p(\text{rain})=0.7$, $q(\text{rain})=0.9$: the ratios are $1.286$ and $0.333$. Left side: $0.7\ln1.286+0.3\ln0.333=-0.154$ nats. Right side: $0.7(0.286)+0.3(-0.667)=0$. And $0.154$ nats $=0.222$ bits, the KL from B3.</p>
+    <p lang="ja">$p(\text{雨})=0.7$、$q(\text{雨})=0.9$ で確かめます。比は $1.286$ と $0.333$。左辺は $0.7\ln1.286+0.3\ln0.333=-0.154$ ナット、右辺は $0.7(0.286)+0.3(-0.667)=0$。そして $0.154$ ナット $=0.222$ ビットで、B3 の KL と一致します。</p>
+  </div>
+  <p class="up">↑ <a href="#c2-B"><span lang="en">Supports B: since the penalty is ≥ 0 and zero only at the truth, the lowest average surprise is reached exactly at $q=p$.</span><span lang="ja">B を支える：罰金は0以上で、0になるのは真実のときだけなので、平均の驚きが最小になるのはちょうど $q=p$。</span></a></p>
+
+  <div class="box branchsum">
+    <p lang="en"><b>B, put together:</b> average surprise $=H(p)+D_{KL}(p\|q)$ (B1–B3). The first part ignores the model; the second is never negative and vanishes only at $q=p$ (B4). So lowering average surprise <em>is</em> pulling the model toward the truth, measured by KL. → <a href="#c2-root">back to the claim</a></p>
+    <p lang="ja"><b>B のまとめ：</b>平均の驚き $=H(p)+D_{KL}(p\|q)$（B1〜B3）。第1項はモデルに関係なく、第2項は決して負にならず、$q=p$ のときだけ消える（B4）。したがって平均の驚きを下げることは、KL で測ってモデルを真実へ引き寄せること<em>そのもの</em>である。→ <a href="#c2-root">結論に戻る</a></p>
   </div>
 
-  <!-- 2.4 -->
-  <h2><span lang="en">2.4 We never see p, only data</span><span lang="ja">2.4 p そのものは見えない。見えるのはデータだけ</span></h2>
-  <p lang="en">In practice nobody hands us $p$. We have samples $y_1,\dots,y_n$ drawn from it. Replace the expectation over $p$ by an average over the samples. This gives the <strong>average negative log-likelihood</strong>, and choosing $q$ to minimize it is <strong>maximum likelihood estimation</strong>.</p>
-  <p lang="ja">実際には、誰も $p$ を教えてはくれません。手元にあるのは、$p$ から出てきたサンプル $y_1,\dots,y_n$ です。$p$ についての期待値を、サンプルについての平均で置き換えます。これが<strong>平均負の対数尤度</strong>で、これを最小にする $q$ を選ぶことを<strong>最尤推定</strong>と呼びます。</p>
+  <!-- ===================== Branch C ===================== -->
+  <h2 id="c2-C"><span class="t-id">C</span><span lang="en">We only have data. Is that enough?</span><span lang="ja">手元にあるのはデータだけ。それで足りるのか？</span></h2>
+  <div class="branch-intro">
+    <p lang="en">Branch B averaged over the world $p$, which we never see. The claim says “on data”. This branch closes the gap:</p>
+    <p lang="ja">枝 B では、決して見ることのできない世界 $p$ について平均しました。結論は「データ上で」と言っています。この枝でそのすきまを埋めます：</p>
+    <ol lang="en">
+      <li><b>C1</b> the average surprise on data is a cross-entropy, and it approaches the one from Branch B,</li>
+      <li><b>C2</b> minimizing it for a one-knob model, by hand, gives the observed frequency.</li>
+    </ol>
+    <ol lang="ja">
+      <li><b>C1</b> データ上の平均の驚きは交差エントロピーであり、枝 B のものに近づいていく。</li>
+      <li><b>C2</b> つまみが1つのモデルでそれを手で最小化すると、観測頻度が得られる。</li>
+    </ol>
+  </div>
 
+  <!-- C1 -->
+  <h3 id="c2-C1"><span class="t-id">C1</span><span lang="en">The data average is a cross-entropy</span><span lang="ja">データ上の平均は交差エントロピー</span></h3>
+  <div class="box sclaim">
+    <p lang="en">Average surprise on data equals $H(\hat p,q)$, the cross-entropy with the data's own frequencies $\hat p$. As data grows, $\hat p\to p$, so it approaches $H(p,q)$.</p>
+    <p lang="ja">データ上の平均の驚きは、データ自身の頻度 $\hat p$ との交差エントロピー $H(\hat p,q)$ に等しい。データが増えると $\hat p\to p$ なので、$H(p,q)$ に近づく。</p>
+  </div>
+  <p lang="en">The <strong>empirical distribution</strong> $\hat p$ is just the frequencies in the data: $\hat p(y)=$ (number of days with outcome $y$) $/\,n$.</p>
+  <p lang="ja"><strong>経験分布</strong> $\hat p$ とは、データの中の頻度のことです：$\hat p(y)=$（結果が $y$ だった日数）$/\,n$。</p>
+  <div class="box worked">
+    <p lang="en">The forecasters' ten days had 6 rainy and 4 dry, so $\hat p(\text{rain})=0.6$. A model that says 0.6: rainy days cost $0.737$ bits and dry days $1.322$ bits, so the average is $0.6\times0.737+0.4\times1.322=0.971$ bits. A model that says 0.5 averages 1 bit.</p>
+    <p lang="ja">予報士の10日間は雨6日・晴れ4日だったので、$\hat p(\text{雨})=0.6$。0.6と言うモデルでは、雨の日は $0.737$ ビット、晴れの日は $1.322$ ビットなので、平均は $0.6\times0.737+0.4\times1.322=0.971$ ビット。0.5と言うモデルは平均1ビットです。</p>
+  </div>
+  <div class="derivation">
+    <div class="step"><div>$$\frac1n\sum_{i=1}^n-\log q(y_i)$$</div><div class="why"><span lang="en">average surprise on data (A3 ÷ $n$)</span><span lang="ja">データ上の平均の驚き（A3 ÷ $n$）</span></div></div>
+    <div class="step"><div>$$=\sum_y\frac{\#\{i:y_i=y\}}{n}\big(-\log q(y)\big)$$</div><div class="why"><span lang="en">group days with the same outcome</span><span lang="ja">同じ結果の日をまとめる</span></div></div>
+    <div class="step"><div>$$=-\sum_y\hat p(y)\log q(y)=H(\hat p,q)$$</div><div class="why"><span lang="en">count ÷ $n$ is $\hat p$; this is B2's formula</span><span lang="ja">個数 ÷ $n$ は $\hat p$。これは B2 の式</span></div></div>
+    <div class="step"><div>$$\xrightarrow{\;n\to\infty\;}H(p,q)=H(p)+D_{KL}(p\|q)$$</div><div class="why"><span lang="en">law of large numbers ($\hat p\to p$), then B3</span><span lang="ja">大数の法則（$\hat p\to p$）、そして B3</span></div></div>
+  </div>
+  <p lang="en">This is the bridge between the world and the computer. The one thing we can compute, average surprise on data, is an honest estimate of the thing we care about.</p>
+  <p lang="ja">これが世界とコンピュータの間の橋です。私たちが計算できる唯一のもの、つまりデータ上の平均の驚きは、本当に気にしているものの正直な推定値なのです。</p>
+  <p class="up">↑ <a href="#c2-C"><span lang="en">Supports C: “on data” in the claim connects to Branch B through this equation.</span><span lang="ja">C を支える：結論の「データ上で」は、この式を通じて枝 B につながる。</span></a></p>
+
+  <!-- C2 -->
+  <h3 id="c2-C2"><span class="t-id">C2</span><span lang="en">Training one knob by hand</span><span lang="ja">つまみ1つを手で学習する</span></h3>
+  <div class="box sclaim">
+    <p lang="en">For a model with one knob $\theta$ (the chance of rain it always announces), the setting with the least average surprise on data is exactly the observed frequency $k/n$. This is maximum likelihood.</p>
+    <p lang="ja">つまみ $\theta$（いつも発表する雨の確率）が1つだけのモデルでは、データ上の平均の驚きが最小になる設定は、ちょうど観測頻度 $k/n$ である。これが最尤推定。</p>
+  </div>
+  <div class="derivation">
+    <div class="step"><div>$$f(\theta)=-\frac1n\Big[k\ln\theta+(n-k)\ln(1-\theta)\Big]$$</div><div class="why"><span lang="en">$k$ rainy days at $-\ln\theta$, $n-k$ dry days at $-\ln(1-\theta)$</span><span lang="ja">雨の $k$ 日は $-\ln\theta$、晴れの $n-k$ 日は $-\ln(1-\theta)$</span></div></div>
+    <div class="step"><div>$$f'(\theta)=-\frac1n\Big[\frac k\theta-\frac{n-k}{1-\theta}\Big]$$</div><div class="why"><span lang="en">$\frac{d}{d\theta}\ln\theta=\frac1\theta$; chain rule gives $-\frac1{1-\theta}$</span><span lang="ja">$\frac{d}{d\theta}\ln\theta=\frac1\theta$。連鎖律で $-\frac1{1-\theta}$</span></div></div>
+    <div class="step"><div>$$f'(\theta)=0\iff k(1-\theta)=(n-k)\theta$$</div><div class="why"><span lang="en">slope zero; clear the fractions</span><span lang="ja">傾きを0とし、分数を払う</span></div></div>
+    <div class="step minor"><div>$$k-k\theta=n\theta-k\theta$$</div><div class="why"><span lang="en">expand</span><span lang="ja">展開する</span></div></div>
+    <div class="step"><div>$$\hat\theta=\frac kn$$</div><div class="why"><span lang="en">the $k\theta$ terms cancel</span><span lang="ja">$k\theta$ の項が消える</span></div></div>
+    <div class="step minor"><div>$$f''(\theta)=\frac1n\Big[\frac k{\theta^2}+\frac{n-k}{(1-\theta)^2}\Big]&gt;0$$</div><div class="why"><span lang="en">curves upward everywhere, so it's a bottom</span><span lang="ja">どこでも上に曲がっているので底</span></div></div>
+  </div>
+  <div class="box worked">
+    <p lang="en">With 6 rainy days out of 10, $\hat\theta=0.6$ and the average surprise is $0.971$ bits (C1). That equals $H(\hat p)$, because at $\hat\theta$ the model matches the data and the KL part is zero.</p>
+    <p lang="ja">10日中6日が雨なら $\hat\theta=0.6$ で、平均の驚きは $0.971$ ビット（C1）。これは $H(\hat p)$ に等しくなります。$\hat\theta$ ではモデルがデータと一致し、KL の部分が0になるからです。</p>
+  </div>
   <figure class="widget" data-widget="mle-nll">
     <figcaption>
-      <span lang="en">The simplest model: one knob θ = chance of rain, ignoring humidity. The red curve is the average surprise on the observed days.</span>
-      <span lang="ja">最も単純なモデル：湿度を無視し、つまみは θ = 降水確率の1つだけ。赤い曲線は、観測した日々での平均の驚きです。</span>
+      <span lang="en">The one-knob model on the rain data. The red curve is average surprise; its bottom sits at k/n.</span>
+      <span lang="ja">雨のデータでの、つまみ1つのモデル。赤い曲線は平均の驚きで、その底は k/n にあります。</span>
     </figcaption>
   </figure>
+  <p class="up">↑ <a href="#c2-C"><span lang="en">Supports C: “training” in the claim is exactly this minimization, done for many knobs at once.</span><span lang="ja">C を支える：結論の「学習」とは、まさにこの最小化を、多くのつまみについて同時に行うこと。</span></a></p>
 
-  <div class="box definition">
-    $$\underbrace{\frac1n\sum_{i=1}^n -\log q(y_i)}_{\text{average NLL}}\;=\;H(\hat p,q)\;\xrightarrow{\;n\to\infty\;}\;H(p,q)=H(p)+D_{KL}(p\|q).$$
-    <p lang="en">Here $\hat p$ is the empirical distribution of the data. Since $H(p)$ does not depend on $q$, <strong>minimizing average NLL, minimizing cross-entropy, and minimizing KL to the truth are the same goal.</strong></p>
-    <p lang="ja">ここで $\hat p$ はデータの経験分布です。$H(p)$ は $q$ によらないので、<strong>平均負の対数尤度の最小化、交差エントロピーの最小化、真実との KL の最小化は、すべて同じ目標です。</strong></p>
+  <div class="box branchsum">
+    <p lang="en"><b>C, put together:</b> what we can compute, $\frac1n\sum_i-\log q(y_i)$, is $H(\hat p,q)=H(\hat p)+D_{KL}(\hat p\|q)$ (C1), and minimizing it by turning knobs is training (C2). With enough data, $\hat p\approx p$, so Branch B applies. → <a href="#c2-root">back to the claim</a></p>
+    <p lang="ja"><b>C のまとめ：</b>計算できる量 $\frac1n\sum_i-\log q(y_i)$ は $H(\hat p,q)=H(\hat p)+D_{KL}(\hat p\|q)$ であり（C1）、つまみを回してそれを最小化することが学習である（C2）。データが十分にあれば $\hat p\approx p$ なので、枝 B が当てはまる。→ <a href="#c2-root">結論に戻る</a></p>
   </div>
 
-  <!-- 2.5 -->
-  <h2><span lang="en">2.5 Squared error is secretly a log-loss</span><span lang="ja">2.5 二乗誤差の正体は対数損失</span></h2>
-  <p lang="en">For the curve example we usually minimize mean squared error. That is not a separate idea. Suppose the model says “$y$ is Gaussian around $a\sin x$ with spread $\sigma$.” Then its surprise is the squared error, rescaled, plus a constant.</p>
-  <p lang="ja">曲線の例では、普通は平均二乗誤差を最小化します。これは別の考え方ではありません。モデルが「$y$ は $a\sin x$ を中心に、広がり $\sigma$ のガウス分布に従う」と言っているとします。すると、このモデルの驚きは、二乗誤差を定数倍して定数を足したものになります。</p>
+  <!-- ===================== Branch D ===================== -->
+  <h2 id="c2-D"><span class="t-id">D</span><span lang="en">What follows from the claim</span><span lang="ja">結論から導かれること</span></h2>
+  <div class="branch-intro">
+    <p lang="en">Branches A–C support the claim. This branch runs the other way: it takes the claim as given and draws two consequences you will meet again.</p>
+    <p lang="ja">枝 A〜C は結論を支えていました。この枝は逆向きで、結論を前提として、また出会うことになる2つの帰結を導きます。</p>
+  </div>
 
+  <!-- D1 -->
+  <h3 id="c2-D1"><span class="t-id">D1</span><span lang="en">Squared error is Gaussian surprise</span><span lang="ja">二乗誤差はガウス分布の驚き</span></h3>
+  <div class="box sclaim">
+    <p lang="en">Minimizing mean squared error is minimizing average surprise when the model says “$y$ is Gaussian around my prediction $\mu$, with a fixed spread $\sigma$”.</p>
+    <p lang="ja">平均二乗誤差の最小化は、モデルが「$y$ は自分の予測 $\mu$ を中心に、固定の広がり $\sigma$ のガウス分布に従う」と言っているときの、平均の驚きの最小化である。</p>
+  </div>
+  <div class="anatomy">
+    $$\mathcal N(y\mid\mu,\sigma^2)=\underbrace{\frac1{\sigma\sqrt{2\pi}}}_{\text{makes area}=1}\exp\Big(\underbrace{-\frac{(y-\mu)^2}{2\sigma^2}}_{\text{squared distance}}\Big)$$
+  </div>
+  <div class="derivation">
+    <div class="step"><div>$$-\ln\mathcal N(y\mid\mu,\sigma^2)=\frac{(y-\mu)^2}{2\sigma^2}+\ln\sigma+\tfrac12\ln2\pi$$</div><div class="why"><span lang="en">surprise (A2); the log of a product is a sum, and $\ln e^u=u$</span><span lang="ja">驚き（A2）。積の対数は和で、$\ln e^u=u$</span></div></div>
+    <div class="step"><div>$$\frac1n\sum_i-\ln\mathcal N(y_i\mid\mu_i,\sigma^2)=\frac1{2\sigma^2}\,\underbrace{\frac1n\sum_i(y_i-\mu_i)^2}_{\text{MSE}}+\text{const}$$</div><div class="why"><span lang="en">average over data (C1); with $\sigma$ fixed, the rest does not depend on the predictions</span><span lang="ja">データで平均する（C1）。$\sigma$ が固定なら、残りは予測によらない</span></div></div>
+  </div>
+  <div class="box worked">
+    <p lang="en">One point: $y=0.5$, $\mu=0.2$, $\sigma=0.3$. Squared error $0.09$; surprise $\frac{0.09}{0.18}+\ln0.3+0.919=0.5-1.204+0.919=0.215$ nats.</p>
+    <p lang="ja">点1つ：$y=0.5$、$\mu=0.2$、$\sigma=0.3$。二乗誤差は $0.09$、驚きは $\frac{0.09}{0.18}+\ln0.3+0.919=0.5-1.204+0.919=0.215$ ナット。</p>
+  </div>
   <figure class="widget" data-widget="mse-vs-nll">
     <figcaption>
-      <span lang="en">Left: data, the model mean (orange), and its ±σ band. Right: MSE and Gaussian NLL as functions of the amplitude a. Both bottom out at the same a.</span>
-      <span lang="ja">左：データ、モデルの平均（オレンジ）とその ±σ の帯。右：振幅 a の関数としての MSE とガウスの負の対数尤度。どちらも同じ a で最小になります。</span>
+      <span lang="en">MSE and Gaussian NLL as functions of the amplitude a. Change σ: the NLL curve stretches, but its bottom stays at the same a.</span>
+      <span lang="ja">振幅 a の関数としての MSE とガウスの負の対数尤度。σ を変えると NLL の曲線は伸び縮みしますが、底は同じ a のままです。</span>
     </figcaption>
   </figure>
+  <p class="up">↑ <a href="#c2-D"><span lang="en">Follows from the claim: the familiar MSE loss is a special case, not an exception.</span><span lang="ja">結論から導かれる：おなじみの MSE 損失は特別な場合であって、例外ではない。</span></a></p>
 
-  <!-- 2.6 -->
-  <h2><span lang="en">2.6 Honesty pays: proper scores</span><span lang="ja">2.6 正直が得をする：適切なスコア</span></h2>
-  <p lang="en">Why not just count hits? Because then a forecaster gains nothing from saying 70% instead of 99%, so calibrated honesty goes unrewarded. A <strong>proper scoring rule</strong> is one where announcing your true belief minimizes your expected penalty. Log-loss is proper, and so is the Brier score.</p>
-  <p lang="ja">なぜ的中数を数えるだけではいけないのでしょうか。それでは、99%ではなく70%と言っても予報士は何も得をせず、較正された正直さが報われないからです。<strong>適切なスコアリング規則</strong>とは、自分の本当の信念を発表したときに期待ペナルティが最小になる規則のことです。対数損失は適切なスコアであり、Brier スコアもそうです。</p>
-
+  <!-- D2 -->
+  <h3 id="c2-D2"><span class="t-id">D2</span><span lang="en">Honesty pays</span><span lang="ja">正直が得をする</span></h3>
+  <div class="box sclaim">
+    <p lang="en">Under log-loss, announcing your true belief gives the lowest expected penalty. Exaggerating or hedging always costs exactly a KL divergence.</p>
+    <p lang="ja">対数損失のもとでは、本当の信念をそのまま発表したときに期待ペナルティが最小になる。誇張しても予防線を張っても、必ずちょうど KL ダイバージェンス分だけ損をする。</p>
+  </div>
+  <div class="derivation">
+    <div class="step"><div>$$\mathbb E_p[-\log r(Y)]=H(p,r)=H(p)+D_{KL}(p\|r)$$</div><div class="why"><span lang="en">you believe $p$ but announce $r$: a cross-entropy (B2, B3)</span><span lang="ja">$p$ を信じて $r$ を発表する：交差エントロピー（B2、B3）</span></div></div>
+    <div class="step"><div>$$\ge H(p),\ \text{equality iff } r=p$$</div><div class="why"><span lang="en">B4</span><span lang="ja">B4</span></div></div>
+  </div>
+  <div class="box worked">
+    <p lang="en">You believe $p=0.7$. Honest: $0.881$ bits per day. Announce $0.95$ to look decisive: $1.348$ bits, an extra $0.467$ bits every day. Counting hits sees no difference.</p>
+    <p lang="ja">あなたは $p=0.7$ と信じています。正直なら $0.881$ ビット/日。決断力があるように見せて $0.95$ と発表すると $1.348$ ビットで、毎日 $0.467$ ビットの余分です。的中数ではまったく差が見えません。</p>
+  </div>
   <figure class="widget" data-widget="scoring-game">
     <figcaption>
       <span lang="en">You know the true chance p. Which r should you announce? Under a proper score, exactly r = p.</span>
-      <span lang="ja">あなたは本当の確率 p を知っています。どの r を発表すべきでしょうか。適切なスコアのもとでは、ちょうど r = p です。</span>
+      <span lang="ja">本当の確率 p を知っているとき、どの r を発表すべきでしょうか。適切なスコアのもとでは、ちょうど r = p です。</span>
     </figcaption>
   </figure>
+  <p class="up">↑ <a href="#c2-D"><span lang="en">Follows from the claim: a model trained on log-loss is pushed to report honest (calibrated) probabilities, a theme of Chapter 12.</span><span lang="ja">結論から導かれる：対数損失で学習したモデルは、正直な（較正された）確率を報告するように押される。第12章のテーマ。</span></a></p>
 
-  <h2><span lang="en">Back to the forecasters</span><span lang="ja">予報士に戻る</span></h2>
-  <p lang="en">A's average surprise is 0.68 bits and B's is 0.52 bits. B wins. A's single confident miss cost more than all of its confident hits saved. The log-loss rewards forecasts that are <em>calibrated</em>, not just right.</p>
-  <p lang="ja">A の平均の驚きは0.68ビット、B は0.52ビットで、B の勝ちです。A が自信満々で外した1回のコストは、自信満々で当てた日々で稼いだ分をすべて上回りました。対数損失が報いるのは、ただ当たる予報ではなく<em>較正された</em>予報です。</p>
+  <!-- ===================== Back to the root ===================== -->
+  <h2 id="c2-up"><span lang="en">Climbing back up the tree</span><span lang="ja">木を登って根に戻る</span></h2>
+  <p lang="en">Now read the claim again, and see which branch holds up each part of it:</p>
+  <p lang="ja">もう一度結論を読み、その各部分をどの枝が支えているかを見てみましょう：</p>
+  <table class="w-table" lang="en">
+    <tr><th>part of the claim</th><th>held up by</th><th>in one line</th></tr>
+    <tr><td>“average surprise”</td><td><a href="#c2-A">A</a></td><td>surprise is $-\log q$, and it adds over days</td></tr>
+    <tr><td>“on data” · “training”</td><td><a href="#c2-C">C</a></td><td>the data average is $H(\hat p,q)$; minimizing it is training</td></tr>
+    <tr><td>“pulling toward the truth, in KL”</td><td><a href="#c2-B">B</a></td><td>$H(p,q)=H(p)+D_{KL}$, and $D_{KL}\ge0$ is zero only at the truth</td></tr>
+  </table>
+  <table class="w-table" lang="ja">
+    <tr><th>結論の部分</th><th>支える枝</th><th>1行で</th></tr>
+    <tr><td>「平均の驚き」</td><td><a href="#c2-A">A</a></td><td>驚きは $-\log q$ で、日ごとに足し算になる</td></tr>
+    <tr><td>「データ上で」「学習」</td><td><a href="#c2-C">C</a></td><td>データ上の平均は $H(\hat p,q)$ で、それを最小化するのが学習</td></tr>
+    <tr><td>「KL で真実へ引き寄せる」</td><td><a href="#c2-B">B</a></td><td>$H(p,q)=H(p)+D_{KL}$ で、$D_{KL}\ge0$ が0になるのは真実のときだけ</td></tr>
+  </table>
+  <p lang="en">And back to the forecasters: A averages $(9\times0.0145+6.644)/10=0.68$ bits and B averages $(9\times0.322+2.322)/10=0.52$ bits. B wins by 0.16 bits per day, because A's single confident miss cost more than all its confident hits saved.</p>
+  <p lang="ja">そして予報士に戻ると、A の平均は $(9\times0.0145+6.644)/10=0.68$ ビット、B は $(9\times0.322+2.322)/10=0.52$ ビット。B が1日あたり0.16ビットの差で勝ちます。A が自信満々で外した1回のコストが、自信満々で当てた日々で稼いだ分をすべて上回ったからです。</p>
+
+  <div class="box misconception">
+    <p lang="en">“Lower training loss always means closer to the truth.” Only with enough data. The computed loss uses $\hat p$, not $p$ (C1). A flexible model can copy the quirks of a small dataset and move <em>away</em> from $p$. Chapters 4, 8, and 12 deal with this gap.</p>
+    <p lang="ja">「訓練損失が低いほど常に真実に近い」が成り立つのは、データが十分にあるときだけです。計算している損失は $p$ ではなく $\hat p$ を使っています（C1）。柔軟なモデルは小さなデータセットの癖を写し取り、かえって $p$ から<em>遠ざかる</em>ことがあります。このギャップは第4・8・12章で扱います。</p>
+  </div>
 
   <div class="box takeaway">
     <p lang="en">Training a probabilistic model means minimizing average surprise on data, which is the same as pulling the model toward the truth in KL.</p>
@@ -152,14 +533,19 @@
   </div>
 
   <details class="check">
-    <summary><span lang="en">A model assigns probability 0 to an outcome that then happens. What is its log-loss?</span><span lang="ja">あるモデルが確率0を割り当てた結果が、実際に起きました。対数損失はいくらでしょうか？</span></summary>
-    <p lang="en">Infinite. This is why models should never be completely certain, and why output layers like sigmoid and softmax never output exactly 0.</p>
-    <p lang="ja">無限大です。だからモデルは決して完全に確信してはいけないのです。sigmoid や softmax のような出力層がちょうど0を出さないのも、このためです。</p>
+    <summary><span lang="en">A model assigns probability 0 to an outcome that then happens. What is its log-loss? (Which leaf answers this?)</span><span lang="ja">あるモデルが確率0を割り当てた結果が、実際に起きました。対数損失はいくらでしょうか？（どの葉が答えていますか？）</span></summary>
+    <p lang="en">Infinite: the edge case in A2. This is why sigmoid and softmax never output exactly 0.</p>
+    <p lang="ja">無限大です。A2 の端の場合です。sigmoid や softmax がちょうど0を出さないのはこのためです。</p>
   </details>
   <details class="check">
     <summary><span lang="en">Why does $H(p)$ not matter when we choose $q$?</span><span lang="ja">$q$ を選ぶとき、$H(p)$ が関係ないのはなぜでしょうか？</span></summary>
-    <p lang="en">It depends only on the world, not on our model. It is a floor that no $q$ can go below, and it shifts the loss curve without moving its minimum.</p>
-    <p lang="ja">$H(p)$ は世界だけで決まり、モデルにはよらないからです。どの $q$ でも下回れない床であり、損失曲線を上下に動かすだけで、最小点の位置は変えません。</p>
+    <p lang="en">It depends only on the world (B1). In the split of B3 it shifts the loss up or down without moving its minimum.</p>
+    <p lang="ja">世界だけで決まるからです（B1）。B3 の分解の中で、損失を上下に動かすだけで最小点は動かしません。</p>
+  </details>
+  <details class="check">
+    <summary><span lang="en">In 3 of 12 days it rained. What constant forecast minimizes average log-loss, and what is the minimum?</span><span lang="ja">12日中3日が雨でした。平均対数損失を最小にする一定の予報と、その最小値は？</span></summary>
+    <p lang="en">$\hat\theta=3/12=0.25$ (C2), and the minimum is $H(0.25)=0.25\times2+0.75\times0.415=0.811$ bits.</p>
+    <p lang="ja">$\hat\theta=3/12=0.25$（C2）、最小値は $H(0.25)=0.25\times2+0.75\times0.415=0.811$ ビットです。</p>
   </details>
 
   <div class="box bridge">

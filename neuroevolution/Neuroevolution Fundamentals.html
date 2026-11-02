@@ -1,0 +1,783 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Neuroevolution Fundamentals</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+:root{--bg:#F2F4F6;--panel:#FFFFFF;--ink:#16212B;--muted:#5A6873;--line:#D5DCE2;--amber:#B8731A;--leaf:#2C8466;--accent:#B4483C;
+--s4:#3A6EA5;--s5:#4F7C8A;--s6:#8A5A3B;--s7:#56606B;--s8:#7C8A2E;--on-accent:#FFFFFF}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0E1317;--panel:#151C22;--ink:#E2E8ED;--muted:#93A1AC;--line:#26313A;--amber:#E5A447;--leaf:#4FC49B;--accent:#E07A6C;--s4:#6FA2D8;--s5:#86B5C2;--s6:#C79670;--s7:#A3AEB8;--s8:#B9C46A;--on-accent:#0E1317;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0E1317;--panel:#151C22;--ink:#E2E8ED;--muted:#93A1AC;--line:#26313A;--amber:#E5A447;--leaf:#4FC49B;--accent:#E07A6C;--s4:#6FA2D8;--s5:#86B5C2;--s6:#C79670;--s7:#A3AEB8;--s8:#B9C46A;--on-accent:#0E1317;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 72px;overflow-x:clip}
+.col{max-width:960px;margin:0 auto}
+h1,h2,h3,.disp{font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:-.01em;line-height:1.15}
+h1{font-size:clamp(34px,5vw,52px);margin:6px 0 10px;font-weight:700}
+h2{font-size:clamp(26px,4vw,34px);margin:0 0 6px;font-weight:700}
+h3{font-size:19px;margin:22px 0 6px;font-weight:600}
+p{margin:0 0 12px}
+a{color:var(--accent)}
+.mono,code,.gene,label,output,.stat{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace}
+code{font-size:.86em;background:color-mix(in srgb,var(--line) 55%,transparent);padding:1px 5px;border-radius:4px}
+.kicker{font:600 13px/1 "JetBrains Mono",monospace;color:var(--accent);letter-spacing:.08em;text-transform:uppercase}
+.cite{font:12px "JetBrains Mono",monospace;color:var(--muted);margin-left:6px;font-weight:400;letter-spacing:0}
+.lede{font-size:20px;color:var(--muted);max-width:640px}
+/* nav */
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:0 max(16px,env(safe-area-inset-left,0px))}
+nav.toc ul{list-style:none;margin:0 auto;padding:8px 0;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;max-width:960px}
+nav.toc ul::-webkit-scrollbar{display:none}
+nav.toc a{display:block;white-space:nowrap;font:600 13px "Bricolage Grotesque",system-ui,sans-serif;color:var(--muted);text-decoration:none;padding:5px 10px;border-radius:999px}
+nav.toc a:hover,nav.toc a.on{color:var(--ink);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+section{padding-top:56px;scroll-margin-top:52px}
+.hero{padding-top:28px;display:grid;gap:18px}
+@media(min-width:860px){.hero{grid-template-columns:1fr 1.1fr;align-items:center}}
+.fig{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin:14px 0}
+.fig>figcaption,.cap{font-size:14px;color:var(--muted);margin-top:8px}
+.scene{position:relative;height:360px;touch-action:pan-y;border-radius:8px;overflow:hidden;background:var(--panel)}
+.scene.tall{height:420px}
+.scene canvas{display:block}
+.scene .hud{position:absolute;left:10px;top:8px;font:12px/1.4 "JetBrains Mono",monospace;color:var(--muted);pointer-events:none}
+.scene .hint{position:absolute;right:10px;bottom:8px;font:11px "JetBrains Mono",monospace;color:var(--muted);pointer-events:none}
+.no3d{padding:40px 16px;text-align:center;color:var(--muted)}
+canvas.plot{width:100%;height:200px;display:block}
+canvas.sim{width:100%;height:190px;display:block}
+.ctrls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;margin-top:12px}
+.ctrl{display:flex;flex-direction:column;gap:2px;flex:1 1 170px;min-width:0}
+.ctrl label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl output{color:var(--ink);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select{font:13px "JetBrains Mono",monospace;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 6px;max-width:100%}
+.chk{font-size:13px;display:flex;gap:6px;align-items:center;color:var(--ink)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button.b{font:600 13px "Bricolage Grotesque",system-ui,sans-serif;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer}
+button.b:hover{border-color:var(--accent)}
+button.b.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,.j:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stat{font-size:12.5px;color:var(--muted)}
+.stat b{color:var(--ink);font-weight:600}
+/* boxes */
+.skip,.why,.jar{font-size:15.5px;padding:8px 14px;margin:14px 0;border-left:3px solid var(--amber);background:color-mix(in srgb,var(--amber) 8%,transparent);border-radius:0 6px 6px 0}
+.why{border-color:var(--leaf);background:color-mix(in srgb,var(--leaf) 8%,transparent)}
+.jar{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.skip b,.why b,.jar b{font-family:"Bricolage Grotesque",system-ui,sans-serif}
+.j{border-bottom:1.5px dotted var(--accent);cursor:help}
+#tip{position:absolute;z-index:50;max-width:260px;background:var(--ink);color:var(--bg);font:13px/1.45 "Source Serif 4",serif;padding:8px 10px;border-radius:6px;pointer-events:none;display:none}
+details.q{border-top:1px solid var(--line);padding:8px 0}
+details.q summary{cursor:pointer;font-weight:600}
+details.q summary::marker{color:var(--accent)}
+details.q p{margin:6px 0 0;color:var(--muted)}
+/* equations */
+.eq{font:clamp(16px,4.4vw,22px)/1.3 "Source Serif 4",serif;text-align:center;padding:14px 6px;overflow-x:auto;white-space:nowrap}
+.eq i{font-style:italic}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 3px}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 3px}
+.ov{text-decoration:overline}
+.t1{color:var(--accent)}.t2{color:var(--amber)}.t3{color:var(--leaf)}
+table.terms{width:100%;border-collapse:collapse;font-size:15px}
+table.terms td,table.terms th{border-top:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+table.terms th{font:600 12px "JetBrains Mono",monospace;color:var(--muted)}
+table.terms td:first-child{font-family:"JetBrains Mono",monospace;white-space:nowrap}
+.tscroll{overflow-x:auto}
+/* concept map */
+.cmap{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:620px){.cmap{grid-template-columns:1fr 1fr}}
+@media(min-width:900px){.cmap{grid-template-columns:repeat(4,1fr)}}
+.cmroot{text-align:center;margin-bottom:10px}
+.cmroot span{display:inline-block;font:700 16px "Bricolage Grotesque",sans-serif;border:2px solid var(--accent);border-radius:999px;padding:6px 16px}
+.cluster{border-top:3px solid var(--c);padding:8px 0 0}
+.cluster h3{margin:0 0 6px;font-size:16px}
+.cluster ul{list-style:none;margin:0;padding:0 0 0 12px;border-left:1px solid var(--line)}
+.cluster li{margin:3px 0;font-size:15px}
+.cluster li a{color:var(--ink);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--c) 60%,transparent)}
+.cluster li a:hover{color:var(--c)}
+/* genes */
+.genes{overflow-x:auto;padding-bottom:4px}
+.grow{display:flex;gap:4px;align-items:stretch;margin:4px 0}
+.grow .rl{flex:0 0 74px;font:600 12px "JetBrains Mono",monospace;color:var(--muted);align-self:center}
+.gene{flex:0 0 58px;border:1.5px solid var(--line);border-radius:6px;padding:3px 2px;text-align:center;font-size:11.5px;line-height:1.3;background:var(--bg)}
+.gene b{display:block;font-size:13px}
+.gene span{display:block}
+.gene.off{opacity:.55;border-style:dashed}
+.gene.empty{border:1px dashed transparent;background:transparent}
+.gene.match{border-color:var(--leaf)}
+.gene.disjoint{border-color:var(--amber)}
+.gene.excess{border-color:var(--accent)}
+.gene.new{box-shadow:0 0 0 2px var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font:12px "JetBrains Mono",monospace;color:var(--muted);margin:6px 0}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;border:2px solid var(--k);vertical-align:-2px;margin-right:4px}
+.nodechips{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
+.nodechips span{font:11.5px "JetBrains Mono",monospace;border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.log{font:12.5px/1.5 "JetBrains Mono",monospace;color:var(--muted);min-height:2.6em;margin-top:6px}
+.two{display:grid;gap:14px}
+@media(min-width:760px){.two{grid-template-columns:1fr 1fr}}
+.grid2{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;font-size:14.5px}
+.grid2>div{padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.grid2 .hd{background:transparent;border:0;font:600 12px "JetBrains Mono",monospace;color:var(--muted);align-self:end}
+.grid2 button{all:unset;cursor:pointer;display:block}
+.grid2 .cell.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.grid2 .cell b{font-family:"Bricolage Grotesque",sans-serif}
+.mats{display:flex;gap:14px;flex-wrap:wrap}
+.mats>div{flex:1 1 140px;min-width:0}
+.mats canvas{width:100%;aspect-ratio:1;display:block;max-width:240px}
+.bars .row{display:grid;grid-template-columns:74px 1fr 44px;gap:6px;align-items:center;font:12px "JetBrains Mono",monospace;margin:3px 0}
+.bars .bar{height:10px;border-radius:3px;background:var(--k);min-width:1px}
+.sp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sp-chips span{font:11.5px "JetBrains Mono",monospace;border-left:4px solid var(--k);padding:1px 6px;background:var(--bg);border-radius:0 4px 4px 0}
+.tree{list-style:none;padding-left:0;margin:0}
+.tree ul{list-style:none;padding-left:16px;border-left:1px solid var(--line);margin:4px 0 8px 6px}
+.tree li{margin:3px 0}
+.tree>li>b{font-family:"Bricolage Grotesque",sans-serif}
+table.atari{border-collapse:collapse;font:12px "JetBrains Mono",monospace;width:100%;min-width:460px}
+table.atari td,table.atari th{padding:3px 6px;text-align:right;border-top:1px solid var(--line)}
+table.atari td:first-child,table.atari th:first-child{text-align:left}
+table.atari td.win{color:var(--accent);font-weight:600}
+.foot{color:var(--muted);font-size:14px;margin-top:48px;border-top:1px solid var(--line);padding-top:12px}
+</style>
+
+<div class="wrap"><div class="col">
+<header class="hero" id="top">
+  <div>
+    <div class="kicker">Chapter 3</div>
+    <h1>The Fundamentals of Neuroevolution</h1>
+    <p class="lede">Let a population, not a gradient, shape a neural network: first its weights, then its very structure, growing from minimal to just-complex-enough.</p>
+    <p class="stat">Neuroevolution needs only a <span class="j" tabindex="0" data-t="A single number that says how good an individual is, e.g. total reward after one episode. No per-step error signal is needed.">fitness function</span>. It copes with non-differentiable parts and keeps a diverse population.</p>
+  </div>
+  <figure class="fig" style="margin:0">
+    <div class="scene" id="heroScene"><div class="hud" id="heroHud">minimal genome</div><div class="hint">drag to orbit</div></div>
+    <div class="ctrls" style="margin-top:8px"><div class="btns"><button class="b pri" id="heroPlay">Pause growth</button><button class="b" id="heroReset">Restart</button></div></div>
+    <figcaption>A real NEAT genome complexifying: every so often an <em>add-connection</em> or <em>add-node</em> mutation fires. Labels are innovation numbers.</figcaption>
+  </figure>
+</header>
+
+<nav class="toc" aria-label="Chapter contents"><ul>
+<li><a href="#map">Map</a></li><li><a href="#taxonomy">Taxonomy</a></li><li><a href="#walker">Walker</a></li><li><a href="#genome">Genome</a></li><li><a href="#crossover">Crossover</a></li><li><a href="#species">Species</a></li><li><a href="#poles">Poles</a></li><li><a href="#scale">Scale up</a></li><li><a href="#recap">Recap</a></li>
+</ul></nav>
+
+<section id="map">
+  <h2>Concept map</h2>
+  <p>Four clusters. Click any leaf to jump there.</p>
+  <div class="cmroot"><span>Neuroevolution = EA &times; neural network</span></div>
+  <div class="cmap">
+    <div class="cluster" style="--c:var(--s4)"><h3>1 · What evolves, how encoded <span class="cite">§3.1</span></h3><ul>
+      <li><a href="#taxonomy">Fixed topology vs TWEANN</a></li><li><a href="#taxonomy">Direct vs indirect encoding</a></li></ul></div>
+    <div class="cluster" style="--c:var(--amber)"><h3>2 · A concrete run <span class="cite">§3.2</span></h3><ul>
+      <li><a href="#walker">Fitness function design</a></li><li><a href="#walker">Rollout + EA loop</a></li><li><a href="#walker">Training for generality</a></li></ul></div>
+    <div class="cluster" style="--c:var(--accent)"><h3>3 · NEAT <span class="cite">§3.3</span></h3><ul>
+      <li><a href="#genome">Genome + innovation numbers</a></li><li><a href="#crossover">Crossover by alignment</a></li><li><a href="#species">Speciation + fitness sharing</a></li><li><a href="#poles">Complexification, pole balancing</a></li></ul></div>
+    <div class="cluster" style="--c:var(--leaf)"><h3>4 · Scaling up <span class="cite">§3.4</span></h3><ul>
+      <li><a href="#scale">vs deep learning</a></li><li><a href="#deep">Deep neuroevolution (GA)</a></li><li><a href="#compute">Big compute</a></li></ul></div>
+  </div>
+</section>
+
+<section id="taxonomy">
+  <div class="kicker">§3.1</div>
+  <h2>Two questions sort every method</h2>
+  <p><b>What evolves?</b> Only the weights of a fixed network, or weights <em>and</em> structure (a <span class="j" tabindex="0" data-t="Topology and Weight Evolving Artificial Neural Network: evolves how many neurons exist and how they connect, as well as weights.">TWEANN</span>)?</p>
+  <p><b>How is it written down?</b> The <span class="j" tabindex="0" data-t="The encoded form evolution manipulates (a list of numbers, genes). The phenotype is the actual network built from it.">genotype</span> can spell out every connection (direct) or hold a compact recipe that grows the network (indirect).</p>
+  <div class="fig">
+    <div class="grid2" id="taxGrid">
+      <div class="hd"></div><div class="hd">Direct encoding</div><div class="hd">Indirect encoding</div>
+      <div class="hd">Weights only</div>
+      <button class="cell" data-k="fd"><div><b>Fixed + direct</b><br>Weight vector for a GA/ES. The §3.2 walker.</div></button>
+      <button class="cell" data-k="fi"><div><b>Fixed + indirect</b><br>A rule generates weights. Chapter 4.</div></button>
+      <div class="hd">Weights + topology</div>
+      <button class="cell" data-k="td"><div><b>TWEANN + direct</b><br>NEAT, marker strings, Markov brains.</div></button>
+      <button class="cell" data-k="ti"><div><b>TWEANN + indirect</b><br>CGP graphs, AGE, GENE.</div></button>
+    </div>
+    <p class="log" id="taxInfo" aria-live="polite">Click a cell.</p>
+  </div>
+  <h3>Direct vs indirect: genome size</h3>
+  <p>Left: a direct genome, one bit per possible connection. Right: an indirect genome with one gene, <code>k</code>, and a rule: “connect each neuron to neighbours within k”. Both give the same matrix.</p>
+  <div class="fig">
+    <div class="mats">
+      <div><canvas id="matDirect" aria-label="direct encoding connectivity matrix"></canvas><div class="stat">direct genome: <b id="lenDirect"></b> genes</div></div>
+      <div><canvas id="matIndirect" aria-label="indirect encoding connectivity matrix"></canvas><div class="stat">indirect genome: <b id="lenIndirect"></b> gene + rule</div></div>
+    </div>
+    <div class="ctrls">
+      <div class="ctrl"><label for="taxN">neurons n <output id="taxNV"></output></label><input type="range" id="taxN" min="4" max="48" value="16"></div>
+      <div class="ctrl"><label for="taxK">rule parameter k <output id="taxKV"></output></label><input type="range" id="taxK" min="1" max="8" value="2"></div>
+      <div class="btns"><button class="b" id="taxMut">Mutate 1 gene each</button></div>
+    </div>
+    <p class="log" id="taxLog">Try mutating: a direct mutation flips one connection. An indirect mutation changes k, and with it the whole pattern.</p>
+  </div>
+  <div class="jar"><b>Trade-off.</b> Direct: precise and simple, but length grows like n², and repeated patterns must be found one gene at a time. Indirect: compact and captures regular patterns, but one mutation has broad, nonlinear effects.</div>
+  <div class="skip"><b>Skip-ahead.</b> Indirect encodings get a whole chapter (Ch. 4, e.g. HyperNEAT). Hold onto the picture above. The rest of this chapter is direct encoding.</div>
+  <div class="why"><b>For your apps.</b> An evolved code file is a direct encoding. Evolving a prompt or template that <em>generates</em> code is closer to indirect: small edits, big effects.</div>
+  <details class="q"><summary>Why does direct-encoding length grow quadratically?</summary><p>With dense connectivity, each of n neurons may connect to each other one, so about n² connection genes.</p></details>
+  <details class="q"><summary>When should you prefer an indirect encoding?</summary><p>When the solution should have symmetry or repeated motifs, as in many sensorimotor tasks. For irregular solutions, direct often wins.</p></details>
+</section>
+
+<section id="walker">
+  <div class="kicker">§3.2</div>
+  <h2>Case study: a walker that has to generalize</h2>
+  <p>The book evolves a 24-input, 4-output network for <code>BipedalWalkerHardcore</code> with CMA-ES. This runs a tiny version of the same experiment in your browser: random terrain, a small fixed network (3→5→2), and a GA.</p>
+  <p>Fitness is the <b>sum of rewards over one rollout</b>. Only the final total matters, not per-step credit, so sparse or delayed reward is fine.</p>
+  <div class="eq">fitness = &Sigma;<sub>t</sub> [ <span class="t3">progress<sub>t</sub></span> &minus; <span class="t2">c<sub>e</sub>&middot;torque<sub>t</sub><sup>2</sup></span> + <span class="t1">alive</span> ] &minus; <span class="t1">100&middot;[fell]</span></div>
+  <div class="tscroll"><table class="terms"><tr><th>term</th><th>meaning</th><th>slider</th></tr>
+  <tr><td class="t3">progress</td><td>Distance moved right. The main incentive.</td><td>—</td></tr>
+  <tr><td class="t2">c<sub>e</sub>·torque²</td><td>Energy penalty on motor effort. Makes gaits smoother.</td><td><code>c_e</code> scales it</td></tr>
+  <tr><td class="t1">alive / fell</td><td>Small bonus per step survived. Big penalty and end of episode on a fall.</td><td>—</td></tr>
+  <tr><td>K rollouts</td><td>Fitness = mean over K random terrains.</td><td><code>K</code></td></tr></table></div>
+  <div class="fig">
+    <canvas class="sim" id="walkCanvas" aria-label="walker simulation"></canvas>
+    <canvas class="plot" id="walkPlot" aria-label="fitness chart"></canvas>
+    <div class="legend"><span><i style="--k:var(--accent)"></i>champion's training fitness</span><span><i style="--k:var(--leaf)"></i>same champion, 100 test terrains</span><span><i style="--k:var(--muted)"></i>“solved” line 270</span></div>
+    <div class="ctrls">
+      <div class="ctrl"><label for="wK">rollouts per evaluation K <output id="wKV"></output></label><input type="range" id="wK" min="1" max="16" value="1"></div>
+      <div class="ctrl"><label for="wCe">energy cost c_e <output id="wCeV"></output></label><input type="range" id="wCe" min="0" max="3" step="0.1" value="1"></div>
+      <div class="btns"><button class="b pri" id="wRun">Pause</button><button class="b" id="wReset">Restart</button></div>
+    </div>
+    <p class="stat" id="wStat" aria-live="polite"></p>
+    <figcaption>Changing a slider restarts the run. Under the hood, each generation keeps the top 8 of 40, keeps the elite unchanged, and adds Gaussian noise to the rest.</figcaption>
+  </div>
+  <p><b>What to watch.</b> At K=1 the training curve sits near 300 but the test curve stays low. The champion was <em>lucky</em>, drawing a flat terrain. At K=16 both curves meet. The cost is 16× more episodes. Same lesson as the book: about 220–230 with single trials, over 300 with 16-trial averages.</p>
+  <div class="skip"><b>Skip-ahead.</b> CMA-ES and other ES variants are covered in Ch. 2 (§2.2). The idea here doesn't depend on which EA you use.</div>
+  <div class="why"><b>For your apps.</b> If you score an embedding-based decision policy on a few hand-picked queries, it can get lucky. Average over K sampled scenarios. K is how you trade compute for robustness.</div>
+  <details class="q"><summary>Why does K=1 overestimate quality?</summary><p>Selection picks the maximum of many noisy scores. Those maxima are mostly lucky draws. The training task (one trial) differs from the test task (100 trials).</p></details>
+  <details class="q"><summary>How would you make the policy stochastic?</summary><p>Have the last layer output μ and σ, then sample the action from N(μ, σI). This helps tasks like rock-paper-scissors and adds exploration.</p></details>
+</section>
+
+<section id="genome">
+  <div class="kicker">§3.3.1–3.3.2</div>
+  <h2>NEAT's genome and historical markings</h2>
+  <p>Evolving structure hit three walls. NEAT has one answer to each:</p>
+  <ul class="tree">
+    <li><b>Problems</b> → <b>NEAT's fix</b><ul>
+      <li><span class="j" tabindex="0" data-t="The same network can be written with hidden neurons in any order: n! equivalent genomes. Position-based crossover then mixes unrelated genes.">Competing conventions</span>: crossover scrambles differently-ordered genomes → <a href="#crossover">innovation numbers align genes</a></li>
+      <li>New structure hurts fitness at first and is culled → <a href="#species">speciation protects it</a></li>
+      <li>Random big starting nets waste search → <a href="#poles">start minimal, complexify</a></li></ul></li>
+  </ul>
+  <p>A genome holds <b>node genes</b> (input, bias, output, hidden) and <b>connection genes</b> (in → out, weight, enabled flag, innovation number). Press the buttons. The 3D network and the gene list below change together.</p>
+  <div class="fig">
+    <div class="scene tall" id="genomeScene"><div class="hud" id="genomeHud"></div><div class="hint">drag to orbit</div></div>
+    <div class="ctrls"><div class="btns">
+      <button class="b pri" id="gAddConn">Add connection</button><button class="b pri" id="gAddNode">Add node</button><button class="b" id="gWeights">Perturb weights</button><button class="b" id="gReset">New minimal genome</button><button class="b" id="gSpin">Spin off</button></div></div>
+    <p class="log" id="gLog" aria-live="polite">Start: inputs 1, 2 and bias 3 connect straight to output 4 (genes #1–#3).</p>
+    <div class="nodechips" id="gNodes"></div>
+    <div class="genes" id="gGenes"></div>
+    <div class="legend"><span><i style="--k:var(--leaf)"></i>+ weight</span><span><i style="--k:var(--amber)"></i>− weight</span><span><i style="--k:var(--muted)"></i>disabled (dashed)</span><span><i style="--k:var(--accent)"></i>hidden node / newest gene</span></div>
+  </div>
+  <h3>The two structural mutations</h3>
+  <ul class="tree"><li><b>Add connection</b>: link two unconnected nodes with a random weight. 1 new gene.</li>
+  <li><b>Add node</b>: split an enabled connection a→b. <ul><li>disable a→b</li><li>add a→new with weight 1</li><li>add new→b with the old weight</li><li>so the network barely changes at first</li></ul></li></ul>
+  <p>The <b>innovation number</b> is a global counter. A new kind of structural change gets the next number. The <em>same</em> change made elsewhere (same in/out nodes) reuses its number. Try it: press “New minimal genome” and redo a mutation. The numbers come back, because history is kept.</p>
+  <div class="why"><b>For your apps.</b> In LLM code evolution, give each edit a lineage ID. Two program variants can then be aligned and merged by shared history, not by line position.</div>
+  <details class="q"><summary>Why is the incoming weight set to 1 on add-node?</summary><p>With weight 1 in and the old weight out, the new path roughly reproduces the old connection. The mutation is gentle, so it isn't killed off right away.</p></details>
+  <details class="q"><summary>What do innovation numbers buy computationally?</summary><p>Crossover without expensive graph matching. Genes line up by number in linear time.</p></details>
+</section>
+
+<section id="crossover">
+  <div class="kicker">§3.3.2 · Fig. 3.6</div>
+  <h2>Crossover: line genes up by history</h2>
+  <p>Put both parents' genes in columns by innovation number. Each gene then falls into one of three kinds:</p>
+  <ul class="tree"><li><b>In both parents</b><ul><li><span style="color:var(--leaf)">matching</span>: pick from either parent at random</li></ul></li>
+  <li><b>In one parent only</b><ul><li><span style="color:var(--amber)">disjoint</span>: inside the other parent's range of numbers</li><li><span style="color:var(--accent)">excess</span>: beyond the other parent's highest number</li><li>taken from the <em>fitter</em> parent; if they tie, keep all (as in Fig. 3.6)</li></ul></li></ul>
+  <div class="fig">
+    <div class="ctrls" style="margin-top:0">
+      <div class="ctrl"><label for="xA">parent A</label><select id="xA"><option value="p1">Fig 3.6 parent 1</option><option value="p2">Fig 3.6 parent 2</option><option value="bld">your genome (above)</option></select></div>
+      <div class="ctrl"><label for="xB">parent B</label><select id="xB"><option value="p1">Fig 3.6 parent 1</option><option value="p2" selected>Fig 3.6 parent 2</option><option value="bld">your genome (above)</option></select></div>
+      <div class="ctrl"><label for="xFit">fitter parent</label><select id="xFit"><option value="eq">equal (keep all)</option><option value="A">A</option><option value="B">B</option></select></div>
+      <div class="btns"><button class="b pri" id="xMate">Mate again</button></div>
+    </div>
+    <div class="genes" id="xGenes" style="margin-top:10px"></div>
+    <div class="legend"><span><i style="--k:var(--leaf)"></i>matching</span><span><i style="--k:var(--amber)"></i>disjoint</span><span><i style="--k:var(--accent)"></i>excess</span><span>dashed = disabled</span></div>
+    <div class="two">
+      <svg id="xNet" viewBox="0 0 320 180" role="img" aria-label="offspring network" style="width:100%;max-height:220px"></svg>
+      <div class="stat" id="xStat"></div>
+    </div>
+    <figcaption>Fig 3.6 weights are illustrative. A gene disabled in either parent stays disabled with 75% probability. Pick “your genome” to cross what you built above.</figcaption>
+  </div>
+  <div class="why"><b>For your apps.</b> Merging two evolved prompts or programs? Align by shared ancestry first, then decide what to do with the extras. Don't splice by position.</div>
+  <details class="q"><summary>Fig 3.6: which genes are disjoint and which are excess?</summary><p>Parent 1 ends at #8, parent 2 at #10. #6, #7 (parent 2) and #8 (parent 1) are disjoint. #9 and #10 are excess.</p></details>
+</section>
+
+<section id="species">
+  <div class="kicker">§3.3.3</div>
+  <h2>Speciation and fitness sharing</h2>
+  <p>Picture an island of wolves and penguins. Add a no-kill zone and some penguins survive long enough to evolve into something new. NEAT's no-kill zones are <b>species</b>: groups of similar genomes that mostly compete among themselves.</p>
+  <div class="skip"><b>Skip-ahead.</b> E and D below are the excess and disjoint counts from <a href="#crossover">crossover</a>. If they're fuzzy, do that section first.</div>
+  <h3>Step 1: distance between two genomes</h3>
+  <div class="eq">&delta; = <span class="frac t1"><span>c<sub>1</sub>&thinsp;E</span><span>N</span></span> + <span class="frac t2"><span>c<sub>2</sub>&thinsp;D</span><span>N</span></span> + <span class="t3">c<sub>3</sub>&thinsp;<span class="ov">W</span></span> <span class="cite">(3.1)</span></div>
+  <div class="tscroll"><table class="terms"><tr><th>term</th><th>plain words</th><th>slider</th></tr>
+  <tr><td class="t1">E</td><td>number of excess genes</td><td><code>c1</code> sets how much it counts</td></tr>
+  <tr><td class="t2">D</td><td>number of disjoint genes</td><td><code>c2</code></td></tr>
+  <tr><td class="t3">W̄</td><td>mean |weight difference| over matching genes</td><td><code>c3</code></td></tr>
+  <tr><td>N</td><td>genes in the larger genome, so big genomes aren't automatically far apart</td><td>—</td></tr>
+  <tr><td>δ<sub>t</sub></td><td>threshold: within δ<sub>t</sub> of a species' representative means join it, otherwise start a new species</td><td><code>δt</code></td></tr></table></div>
+  <div class="fig">
+    <div class="scene tall" id="speciesScene"><div class="hud" id="speciesHud"></div><div class="hint">drag to orbit · tap a dot</div></div>
+    <div class="ctrls">
+      <div class="ctrl"><label for="sDt">threshold δt <output id="sDtV"></output></label><input type="range" id="sDt" min="0.1" max="3" step="0.05" value="0.9"></div>
+      <div class="ctrl"><label for="sC1">c1 (excess) <output id="sC1V"></output></label><input type="range" id="sC1" min="0" max="3" step="0.1" value="1"></div>
+      <div class="ctrl"><label for="sC2">c2 (disjoint) <output id="sC2V"></output></label><input type="range" id="sC2" min="0" max="3" step="0.1" value="1"></div>
+      <div class="ctrl"><label for="sC3">c3 (weights) <output id="sC3V"></output></label><input type="range" id="sC3" min="0" max="3" step="0.1" value="0.4"></div>
+      <div class="btns"><button class="b" id="sNew">New population</button><button class="b" id="sSpin">Spin off</button></div>
+    </div>
+    <p class="stat" id="sPick" aria-live="polite"></p>
+    <div class="sp-chips" id="sChips"></div>
+    <figcaption>120 genomes, bred with real NEAT mutations from one minimal XOR ancestor. Position is a 3D map (classical MDS) of the true δ distances, recomputed when c1–c3 change. Color = species. Lines join members to their representative.</figcaption>
+  </div>
+  <h3>Step 2: share fitness inside a species</h3>
+  <div class="eq"><i>f</i>&prime;<sub><i>i</i></sub> = <span class="frac"><span><i>f<sub>i</sub></i></span><span>&Sigma;<sub><i>j</i>=1..<i>n</i></sub> sh(&Delta;(<i>i</i>,<i>j</i>))</span></span> <span class="cite">(3.2)</span></div>
+  <div class="tscroll"><table class="terms"><tr><th>term</th><th>plain words</th></tr>
+  <tr><td>f<sub>i</sub></td><td>raw fitness (here: XOR accuracy, (4−error)²)</td></tr>
+  <tr><td>sh(Δ)</td><td>1 if j is within the threshold of i, else 0</td></tr>
+  <tr><td>Σ sh</td><td>so the denominator is the size of i's species</td></tr>
+  <tr><td>offspring</td><td>each species gets offspring ∝ Σ f′ of its members, which is its <em>mean</em> fitness</td></tr></table></div>
+  <div class="fig"><div class="bars" id="shareBars"></div>
+    <div class="legend"><span><i style="--k:var(--muted)"></i>offspring without sharing (∝ total raw fitness)</span><span><i style="--k:var(--accent)"></i>with sharing (∝ mean fitness)</span></div>
+    <figcaption>Population 120. Without sharing, big species grab offspring because they're big. Sharing pays for quality, so small new species survive.</figcaption></div>
+  <div class="why"><b>For your apps.</b> Use embedding (cosine) distance as δ for candidate programs or decisions, cluster with a threshold, and share fitness within clusters. One idea can't flood the population.</div>
+  <details class="q"><summary>Lower δt. What happens and why?</summary><p>More, smaller species, since fewer genomes fall within the threshold. NEAT can adapt δt to hit a target species count.</p></details>
+  <details class="q"><summary>Set c3 = 0. What does speciation ignore?</summary><p>Weights. Only structure (E, D) separates genomes, so same-topology genomes with different weights merge.</p></details>
+</section>
+
+<section id="poles">
+  <div class="kicker">§3.3.4</div>
+  <h2>Complexify from minimal: double pole balancing</h2>
+  <p>Two poles of different lengths sit on one cart. A force of up to ±10 N must keep both within ±36° and the cart on a ±2.4 m track. Fitness = steps balanced. Below is a real RK4 simulation of the standard equations, evolved live with a GA.</p>
+  <p>Here the controller is the simplest possible net: one tanh neuron, 6 inputs, no hidden nodes. That's a <em>minimal</em> start, which is how NEAT begins.</p>
+  <div class="fig">
+    <canvas class="sim" id="poleCanvas" aria-label="double pole cart simulation"></canvas>
+    <canvas class="plot" id="polePlot" style="height:150px" aria-label="pole fitness chart"></canvas>
+    <div class="ctrls">
+      <div class="ctrl"><label for="pSigma">mutation σ <output id="pSigmaV"></output></label><input type="range" id="pSigma" min="0.02" max="1.5" step="0.02" value="0.3"></div>
+      <div class="ctrl"><label for="pRatio">short / long pole length <output id="pRatioV"></output></label><input type="range" id="pRatio" min="0.05" max="0.9" step="0.05" value="0.1"></div>
+      <label class="chk" for="pHide"><input type="checkbox" id="pHide"> hide velocities (POMDP)</label>
+      <div class="btns"><button class="b pri" id="pRun">Pause</button><button class="b" id="pReset">Restart</button></div>
+    </div>
+    <p class="stat" id="pStat" aria-live="polite"></p>
+    <figcaption>Goal here: 1,000 steps (20 s). The book's benchmark is 100,000. Ratio and velocity toggles restart; σ applies live. As the poles get more similar, the task gets harder. At equal length it's impossible.</figcaption>
+  </div>
+  <p><b>Hide velocities</b> and a feedforward neuron can't infer how fast the poles move. That makes it a <span class="j" tabindex="0" data-t="Partially Observable Markov Decision Process: the current input doesn't reveal the full state, so the agent needs memory.">POMDP</span>. NEAT solved it by growing <em>one</em> hidden node with a recurrent self-loop. That node computes the change in the pole-angle difference: are the poles converging or diverging? It's compact and explainable.</p>
+  <h3>Ablation: remove one NEAT part at a time <span class="cite">Table 3.1</span></h3>
+  <div class="fig">
+    <div class="ctrls" style="margin-top:0"><div class="ctrl" style="flex:0 1 220px"><label for="abMetric">metric</label><select id="abMetric"><option value="e">evaluations to solve</option><option value="f">failure rate</option></select></div></div>
+    <div class="bars" id="abBars" style="margin-top:8px"></div>
+    <figcaption>Double pole <em>with</em> velocities. Removing growth from minimal structure hurts most. Our GA demo above uses a different setup, so its numbers aren't comparable.</figcaption>
+  </div>
+  <div class="why"><b>For your apps.</b> Start an evolved decision policy minimal and let complexity earn its place. Every added piece then has a traceable purpose.</div>
+  <details class="q"><summary>Which ablation hurt most, and what does that say?</summary><p>No-growth (fixed topology): 80% failures and 8× more evaluations. Speciation and markings aren't enough without incremental complexification.</p></details>
+</section>
+
+<section id="scale">
+  <div class="kicker">§3.4</div>
+  <h2>Scaling up</h2>
+  <p>NEAT-style networks are small and built for decision-making. Deep learning relies on huge over-parameterized nets for prediction. Compact evolved nets offer five things:</p>
+  <ul class="tree">
+    <li><b>Understanding</b><ul><li>explainable: each piece has a purpose in the evolutionary history</li><li>different representations: modular and reusable, less entangled than SGD's</li></ul></li>
+    <li><b>Generalization</b><ul><li>regularized: compact, and selected on overall performance, so good for small datasets</li></ul></li>
+    <li><b>Hardware</b><ul><li>fits minimal resources (edge devices)</li><li>fits hardware constraints: quantized weights, threshold units, FPGA parts</li></ul></li>
+  </ul>
+  <h3 id="deep" style="scroll-margin-top:60px">Deep neuroevolution: a GA on millions of weights <span class="cite">§3.4.2</span></h3>
+  <p>Petroski Such et al. trained 4M-parameter Atari nets with only truncation selection, elitism, and Gaussian mutation, with no crossover:</p>
+  <div class="eq">&theta;&prime; = &theta; + <span class="t1">&sigma;</span>&thinsp;<span class="t3">&epsilon;</span>, &nbsp; <span class="t3">&epsilon;</span> ~ N(0, I) <span class="cite">(3.3)</span></div>
+  <div class="tscroll"><table class="terms"><tr><th>term</th><th>plain words</th><th>slider</th></tr>
+  <tr><td>θ</td><td>parent's full weight vector (D numbers)</td><td><code>D</code></td></tr>
+  <tr><td class="t1">σ</td><td>mutation step size</td><td><code>σ</code></td></tr>
+  <tr><td class="t3">ε</td><td>fresh Gaussian noise, one number per weight</td><td>—</td></tr></table></div>
+  <div class="fig">
+    <canvas class="plot" id="deepPlot" aria-label="GA loss chart"></canvas>
+    <div class="ctrls">
+      <div class="ctrl"><label for="dD">parameters D <output id="dDV"></output></label><input type="range" id="dD" min="1" max="5" step="1" value="2"></div>
+      <div class="ctrl"><label for="dSig">σ (log) <output id="dSigV"></output></label><input type="range" id="dSig" min="-3" max="-0.3" step="0.05" value="-1.5"></div>
+      <div class="btns"><button class="b pri" id="dRun">Pause</button><button class="b" id="dReset">Restart</button></div>
+    </div>
+    <p class="stat" id="dStat" aria-live="polite"></p>
+    <figcaption>Population 24, top 6 become parents, elite copied unmutated. Task: match a hidden target vector (a stand-in for a good weight set); y = log mean-squared error. Noise is drawn from a shared table, like large-scale ES/GA setups. Try it: raise D and the same budget barely moves the error. Too big a σ stalls on a plateau, because it can't make precise updates (one reason ES beat the GA on humanoid walking). Too small a σ crawls.</figcaption>
+  </div>
+  <h3>Who won on Atari? <span class="cite">Table 3.2</span></h3>
+  <div class="fig"><label class="chk" for="atari6b"><input type="checkbox" id="atari6b"> include GA run for 6B frames</label>
+    <div class="tscroll"><table class="atari" id="atariT"></table></div><div class="bars" id="atariWins" style="margin-top:8px"></div>
+    <figcaption>Highlighted = best per game. Random search (RS) beats some RL methods on some games: a dense local search can beat following the gradient.</figcaption></div>
+  <h3 id="compute" style="scroll-margin-top:60px">Taking advantage of big compute <span class="cite">§3.4.3</span></h3>
+  <ul class="tree">
+    <li><b>Parallelism</b><ul><li>a whole population evaluated at once over many machines</li><li>OpenAI ES: humanoid walking in about 10 minutes with thousands of workers</li></ul></li>
+    <li><b>Accelerators (GPU/TPU, JAX)</b><ul><li>EvoJAX: JIT-compiled, vectorized fitness evaluation</li><li>EvoSAX: JAX library of evolution strategies</li><li>TensorNEAT: NEAT in JAX, up to 500× faster</li></ul></li>
+    <li><b>Special hardware</b><ul><li>neuromorphic chips with spiking nets (Ch. 11)</li><li>FPGAs for CTRNNs, reconfigurable in under 1 ms</li></ul></li>
+  </ul>
+  <div class="skip"><b>Skip-ahead.</b> OpenAI ES is §2.2.4. Scaling through indirect encodings is Ch. 4.</div>
+  <div class="why"><b>For your apps.</b> Fitness evaluations are embarrassingly parallel. Batch one generation's LLM or embedding calls together. Throughput, not gradients, sets your speed.</div>
+  <details class="q"><summary>Why might a GA lag an ES on humanoid locomotion?</summary><p>ES combines many perturbations into a precise update direction. A GA's single random jumps are cruder, which matters for fine motor control.</p></details>
+</section>
+
+<section id="recap">
+  <h2>Recap</h2>
+  <ul class="tree">
+    <li><b>Choose a space</b><ul><li>fixed topology (weights) or TWEANN (weights + structure)</li><li>direct (explicit genes) or indirect (generative rule)</li></ul></li>
+    <li><b>Define success</b><ul><li>fitness = cumulative reward of a rollout</li><li>average over K rollouts to buy robustness with data</li></ul></li>
+    <li><b>NEAT's three ideas</b><ul><li>historical markings → meaningful crossover</li><li>speciation + fitness sharing → protected innovation</li><li>minimal start + add node / add connection → complexify as needed</li></ul></li>
+    <li><b>Scale</b><ul><li>simple GA/ES on millions of weights is competitive with RL</li><li>parallel and JAX hardware make it fast</li></ul></li>
+  </ul>
+  <h3>Recommended next</h3>
+  <ul class="tree"><li><b>Ch. 4</b>: indirect encodings (HyperNEAT), the other column of the taxonomy</li><li><b>§2.2</b>: CMA-ES and OpenAI ES, if the EA side feels thin</li><li><b>§7.2</b>: NEAT in coevolutionary arms races, where diversity pays off</li></ul>
+  <h3>Review questions <span class="cite">paraphrasing §3.5</span></h3>
+  <p class="stat">Why evolve?</p>
+  <details class="q"><summary>When only the final outcome is known, what does an EA gain over RL?</summary><p>It needs only the total reward of a rollout, with no per-step credit assignment or gradient estimate. Sparse, delayed, deceptive, or noisy rewards are fine.</p></details>
+  <details class="q"><summary>Sketch how an EA trains a policy network.</summary><p>Flatten the weights into a vector, have the EA propose a population, roll out each in the environment for fitness, then select and vary. Repeat until good enough.</p></details>
+  <p class="stat">Policies and robustness</p>
+  <details class="q"><summary>Deterministic vs stochastic policy: why bother with the latter?</summary><p>Some optimal policies are random (rock-paper-scissors), and sampling helps exploration and escaping local optima.</p></details>
+  <details class="q"><summary>What does multi-trial evaluation trade?</summary><p>K× worse data efficiency for policies that generalize across terrains.</p></details>
+  <p class="stat">Structure and NEAT</p>
+  <details class="q"><summary>Name NEAT's parts and what each contributes.</summary><p>Mutation adds structure (and tunes weights). Crossover with historical markings combines parents meaningfully. Speciation with sharing protects new structures. A minimal start keeps search small.</p></details>
+  <details class="q"><summary>Why is the pole-balancing solution explainable?</summary><p>It has one hidden node with a clear job: tracking the change in the pole-angle difference. Every element was added for a reason.</p></details>
+  <p class="stat">Big picture</p>
+  <details class="q"><summary>Two cases where neuroevolution beats deep learning?</summary><p>Non-differentiable or hardware-constrained networks, and small-data or explainability needs. Also sparse-reward decision tasks.</p></details>
+  <details class="q"><summary>How does hardware acceleration help, and with what tools?</summary><p>Vectorized, JIT-compiled population evaluation on GPUs/TPUs: EvoJAX, EvoSAX, TensorNEAT.</p></details>
+  <p class="foot">Based on Chapter 3 of <em>Neuroevolution</em> (Risi, Tang, Ha, Miikkulainen). Paraphrased for study. All demos are small re-implementations, not the book's code.</p>
+</section>
+</div></div>
+<div id="tip" role="tooltip"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim()||'#888';
+const themeHooks=[];const onTheme=f=>themeHooks.push(f);
+const fireTheme=()=>themeHooks.forEach(f=>{try{f()}catch(e){console.error(e)}});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',fireTheme);
+new MutationObserver(fireTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+const SP=['--accent','--leaf','--amber','--s4','--s5','--s6','--s7','--s8'];
+const spColor=i=>css(SP[i%SP.length]);
+
+/* ---------- rng ---------- */
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let R=Math.random;
+function gauss(r){r=r||R;let u=0;while(!u)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r())}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- helpers ---------- */
+function bindRange(id,fmt,cb){const el=$('#'+id),out=$('#'+id+'V');const f=(fire)=>{if(out)out.textContent=fmt(+el.value);if(fire&&cb)cb(+el.value)};el.addEventListener('input',()=>f(true));f(false);return el}
+function fit(cv){const d=Math.min(2,window.devicePixelRatio||1);const w=cv.clientWidth||300,h=cv.clientHeight||150;if(cv.width!==Math.round(w*d)||cv.height!==Math.round(h*d)){cv.width=Math.round(w*d);cv.height=Math.round(h*d)}const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);return{c,w,h}}
+const loops=[];
+function loop(el,fn){const L={el,fn,vis:false};loops.push(L);new IntersectionObserver(es=>{es.forEach(e=>{L.vis=e.isIntersecting;if(L.vis&&L.onShow)L.onShow()})},{rootMargin:'80px'}).observe(el);return L}
+let last=performance.now();
+function tick(now){const dt=Math.min(0.05,(now-last)/1000);last=now;for(const L of loops)if(L.vis){try{L.fn(dt)}catch(e){console.error(e);L.vis=false}}requestAnimationFrame(tick)}
+requestAnimationFrame(tick);
+function plot(cv,series,o){const {c,w,h}=fit(cv);c.clearRect(0,0,w,h);const pl=40,pr=8,pt=10,pb=22;const ink=css('--muted'),line=css('--line');
+ let n=1;series.forEach(s=>n=Math.max(n,s.data.length));const xm=Math.max(o.xmax||0,n-1,1);
+ const X=i=>pl+(w-pl-pr)*i/xm,Y=v=>pt+(h-pt-pb)*(1-(clamp(v,o.ymin,o.ymax)-o.ymin)/(o.ymax-o.ymin));
+ c.strokeStyle=line;c.lineWidth=1;c.font='11px "JetBrains Mono",monospace';c.fillStyle=ink;
+ for(let k=0;k<=4;k++){const v=o.ymin+(o.ymax-o.ymin)*k/4;const y=Y(v);c.beginPath();c.moveTo(pl,y);c.lineTo(w-pr,y);c.stroke();c.fillText(o.fy?o.fy(v):v.toFixed(0),2,y+4)}
+ c.fillText(o.xl||'generation',w-pr-80,h-6);
+ if(o.hline!=null){c.setLineDash([4,4]);c.strokeStyle=ink;c.beginPath();c.moveTo(pl,Y(o.hline));c.lineTo(w-pr,Y(o.hline));c.stroke();c.setLineDash([])}
+ for(const s of series){if(!s.data.length)continue;c.strokeStyle=s.color;c.lineWidth=2;c.beginPath();s.data.forEach((v,i)=>{i?c.lineTo(X(i),Y(v)):c.moveTo(X(i),Y(v))});c.stroke()}}
+
+/* ---------- tooltip ---------- */
+const tip=$('#tip');
+function showTip(el){tip.textContent=el.dataset.t;tip.style.display='block';const r=el.getBoundingClientRect();const tw=Math.min(260,innerWidth-24);tip.style.maxWidth=tw+'px';const x=clamp(r.left+scrollX,8+scrollX,scrollX+innerWidth-tw-12);tip.style.left=x+'px';tip.style.top=(r.bottom+scrollY+6)+'px'}
+document.querySelectorAll('.j').forEach(el=>{el.addEventListener('mouseenter',()=>showTip(el));el.addEventListener('mouseleave',()=>tip.style.display='none');el.addEventListener('focus',()=>showTip(el));el.addEventListener('blur',()=>tip.style.display='none')});
+
+/* ---------- nav highlight ---------- */
+const navA=[...document.querySelectorAll('nav.toc a')];
+const secObs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){navA.forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id))}})},{rootMargin:'-45% 0px -50% 0px'});
+document.querySelectorAll('section[id]').forEach(s=>secObs.observe(s));
+
+/* =========================================================
+   NEAT core
+   ========================================================= */
+function Registry(){this.inn=new Map();this.split=new Map();this.nextInn=1;this.nextNode=5}
+Registry.prototype.conn=function(a,b){const k=a+'>'+b;if(!this.inn.has(k))this.inn.set(k,this.nextInn++);return this.inn.get(k)};
+Registry.prototype.has=function(a,b){return this.inn.has(a+'>'+b)};
+Registry.prototype.node=function(inn){if(!this.split.has(inn))this.split.set(inn,this.nextNode++);return this.split.get(inn)};
+function minimal(reg,r){r=r||R;const g={nodes:[{id:1,t:'in'},{id:2,t:'in'},{id:3,t:'bias'},{id:4,t:'out'}],conns:[]};[1,2,3].forEach(i=>g.conns.push({inn:reg.conn(i,4),i,o:4,w:+(gauss(r)).toFixed(2),en:true}));return g}
+const clone=g=>({nodes:g.nodes.map(n=>({...n})),conns:g.conns.map(c=>({...c}))});
+function reach(g,from,to){const st=[from],seen=new Set();while(st.length){const x=st.pop();if(x===to)return true;if(seen.has(x))continue;seen.add(x);for(const c of g.conns)if(c.i===x)st.push(c.o)}return false}
+function addConn(g,reg,r){r=r||R;const ex=new Set(g.conns.map(c=>c.i+'>'+c.o));const cand=[];
+ for(const a of g.nodes)for(const b of g.nodes){if(a.id===b.id||a.t==='out'||b.t==='in'||b.t==='bias')continue;if(ex.has(a.id+'>'+b.id))continue;if(reach(g,b.id,a.id))continue;cand.push([a.id,b.id])}
+ if(!cand.length)return null;const [a,b]=cand[Math.floor(r()*cand.length)];const reused=reg.has(a,b);const c={inn:reg.conn(a,b),i:a,o:b,w:+(gauss(r)).toFixed(2),en:true};g.conns.push(c);return{kind:'conn',c,reused}}
+function addNode(g,reg,r){r=r||R;const ids=new Set(g.nodes.map(n=>n.id));const cand=g.conns.filter(c=>c.en&&!ids.has(reg.split.has(c.inn)?reg.split.get(c.inn):-1));
+ if(!cand.length)return null;const c=cand[Math.floor(r()*cand.length)];const reused=reg.split.has(c.inn);c.en=false;const id=reg.node(c.inn);g.nodes.push({id,t:'hid'});
+ const r1=reg.has(c.i,id),a={inn:reg.conn(c.i,id),i:c.i,o:id,w:1,en:true},b={inn:reg.conn(id,c.o),i:id,o:c.o,w:c.w,en:true};g.conns.push(a,b);return{kind:'node',split:c,id,a,b,reused:reused||r1}}
+function perturb(g,s,r){g.conns.forEach(c=>{if((r||R)()<0.8)c.w=+(c.w+gauss(r)*s).toFixed(2)})}
+function layout(g){const t=new Map(g.nodes.map(n=>[n.id,n.t]));const d=new Map();g.nodes.forEach(n=>{if(n.t==='in'||n.t==='bias')d.set(n.id,0)});
+ for(let it=0;it<g.nodes.length+1;it++){let ch=false;for(const c of g.conns){if(t.get(c.o)!=='hid'||!d.has(c.i))continue;const v=d.get(c.i)+1;if((d.get(c.o)||0)<v&&v<40){d.set(c.o,v);ch=true}}if(!ch)break}
+ let mx=0;g.nodes.forEach(n=>{if(n.t==='hid'){if(!d.has(n.id))d.set(n.id,1);mx=Math.max(mx,d.get(n.id))}});
+ g.nodes.forEach(n=>{if(n.t==='out')d.set(n.id,mx+1)});const layers=new Map();
+ [...g.nodes].sort((a,b)=>a.id-b.id).forEach(n=>{const k=d.get(n.id);if(!layers.has(k))layers.set(k,[]);layers.get(k).push(n.id)});
+ const P=new Map();layers.forEach((ids,k)=>{const sp=Math.min(1,2.6/Math.max(1,ids.length-1));ids.forEach((id,j)=>{const y=(j-(ids.length-1)/2)*sp;const z=(t.get(id)==='hid')?(((id*53)%5)-2)*0.32:(j%2?0.2:-0.2);P.set(id,[-1.8+3.6*k/(mx+1),y,z])})});return{P,depth:d}}
+function forward(g,x){const {depth}=layout(g);const v=new Map();v.set(1,x[0]);v.set(2,x[1]);v.set(3,1);const order=g.nodes.filter(n=>n.t==='hid'||n.t==='out').sort((a,b)=>depth.get(a.id)-depth.get(b.id));
+ for(const n of order){let s=0;for(const c of g.conns)if(c.en&&c.o===n.id)s+=(v.get(c.i)||0)*c.w;v.set(n.id,1/(1+Math.exp(-4.9*s)))}return v.get(4)}
+function xorFit(g){let e=0;[[0,0,0],[0,1,1],[1,0,1],[1,1,0]].forEach(([a,b,y])=>e+=Math.abs(forward(g,[a,b])-y));return(4-e)**2}
+function compat(A,B,c1,c2,c3){const ma=new Map(A.conns.map(c=>[c.inn,c])),mb=new Map(B.conns.map(c=>[c.inn,c]));const xa=Math.max(...ma.keys()),xb=Math.max(...mb.keys());let E=0,D=0,W=0,M=0;
+ const all=new Set([...ma.keys(),...mb.keys()]);for(const k of all){const a=ma.get(k),b=mb.get(k);if(a&&b){M++;W+=Math.abs(a.w-b.w)}else if(a){k>xb?E++:D++}else{k>xa?E++:D++}}
+ const N=Math.max(A.conns.length,B.conns.length,1);const Wb=M?W/M:0;return{E,D,W:Wb,N,t1:c1*E/N,t2:c2*D/N,t3:c3*Wb,d:c1*E/N+c2*D/N+c3*Wb}}
+const fw=w=>(w>=0?'+':'')+w.toFixed(1);
+
+/* ---------- Figure-3.6 universe ---------- */
+const figReg=new Registry();[[1,4],[2,4],[3,4],[2,5],[5,4],[5,6],[6,4],[1,5],[3,5],[1,6]].forEach(([a,b])=>figReg.conn(a,b));figReg.split.set(2,5);figReg.split.set(5,6);figReg.nextNode=7;
+const mk=(ids,list)=>({nodes:ids.map(id=>({id,t:id<=2?'in':id===3?'bias':id===4?'out':'hid'})),conns:list.map(([inn,i,o,w,en])=>({inn,i,o,w,en:en!==0}))});
+const P1=mk([1,2,3,4,5],[[1,1,4,0.7],[2,2,4,-0.5,0],[3,3,4,0.5],[4,2,5,0.2],[5,5,4,0.4],[8,1,5,-0.6]]);
+const P2=mk([1,2,3,4,5,6],[[1,1,4,0.6],[2,2,4,-0.4,0],[3,3,4,0.3],[4,2,5,0.9],[5,5,4,-0.2,0],[6,5,6,0.8],[7,6,4,-0.7],[9,3,5,0.1],[10,1,6,0.5]]);
+
+/* =========================================================
+   three.js scene helpers
+   ========================================================= */
+const HAS3=typeof window.THREE!=='undefined';
+function Scene3(host){
+ if(!HAS3){host.insertAdjacentHTML('beforeend','<p class="no3d">3D view needs three.js, which could not load here.</p>');return null}
+ const r=new THREE.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));r.setClearColor(0x000000,0);host.insertBefore(r.domElement,host.firstChild);
+ const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(38,1,0.1,100);cam.position.set(0,0.3,7.4);cam.lookAt(0,0,0);
+ scene.add(new THREE.AmbientLight(0xffffff,0.72));const dl=new THREE.DirectionalLight(0xffffff,0.6);dl.position.set(3,4,6);scene.add(dl);
+ const root=new THREE.Group();scene.add(root);
+ const S={r,scene,cam,root,yaw:0.5,pitch:0.18,auto:!RM,drag:false,moved:0,frame:null,click:null};
+ const el=r.domElement;let px=0,py=0;
+ el.addEventListener('pointerdown',e=>{S.drag=true;S.moved=0;px=e.clientX;py=e.clientY});
+ el.addEventListener('pointermove',e=>{if(!S.drag)return;const dx=e.clientX-px,dy=e.clientY-py;S.moved+=Math.abs(dx)+Math.abs(dy);S.yaw+=dx*0.01;S.pitch=clamp(S.pitch+dy*0.008,-1.2,1.2);px=e.clientX;py=e.clientY});
+ el.addEventListener('pointerup',e=>{S.drag=false;if(S.moved<6&&S.click){const b=el.getBoundingClientRect();S.click((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1)}});
+ el.addEventListener('pointercancel',()=>S.drag=false);el.addEventListener('pointerleave',()=>S.drag=false);
+ const rs=()=>{const w=host.clientWidth||300,h=host.clientHeight||300;r.setSize(w,h);cam.aspect=w/h;cam.position.z=w<500?9.2:7.4;cam.updateProjectionMatrix()};rs();new ResizeObserver(rs).observe(host);
+ loop(host,dt=>{if(S.auto&&!S.drag)S.yaw+=dt*0.18;root.rotation.set(S.pitch,S.yaw,0);if(S.frame)S.frame(dt);r.render(scene,cam)});
+ return S}
+const labels=[];
+function makeLabel(text,varName,scale){const cv=document.createElement('canvas');cv.width=128;cv.height=64;const tex=new THREE.CanvasTexture(cv);
+ const L={cv,tex,text,varName,draw(){const c=cv.getContext('2d');c.clearRect(0,0,128,64);c.font='600 34px "JetBrains Mono",monospace';c.textAlign='center';c.textBaseline='middle';c.fillStyle=css(L.varName);c.fillText(L.text,64,32);tex.needsUpdate=true}};
+ L.draw();const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));sp.scale.set(0.5*(scale||1),0.25*(scale||1),1);sp.renderOrder=5;L.sprite=sp;labels.push(L);return L}
+onTheme(()=>labels.forEach(L=>L.draw()));
+
+function NetView(S){
+ const nodes=new Map(),edges=new Map();const geoS=new THREE.SphereGeometry(1,20,14),geoC=new THREE.CylinderGeometry(1,1,1,8,1,true);
+ const up=new THREE.Vector3(0,1,0),tmp=new THREE.Vector3();const mats=[];
+ const mat=(v,op)=>{const m=new THREE.MeshLambertMaterial({color:css(v),transparent:op<1,opacity:op});m.userData.v=v;mats.push(m);return m};
+ onTheme(()=>mats.forEach(m=>m.color.set(css(m.userData.v))));
+ const nodeVar=t=>t==='in'?'--muted':t==='bias'?'--amber':t==='out'?'--ink':'--accent';
+ let newest=-1;
+ function set(g){const {P}=layout(g);const seen=new Set();
+  for(const n of g.nodes){seen.add(n.id);let o=nodes.get(n.id);const p=P.get(n.id);
+   if(!o){const m=new THREE.Mesh(geoS,mat(nodeVar(n.t),1));const lab=makeLabel(String(n.id),'--ink',0.8);S.root.add(m);S.root.add(lab.sprite);
+    const start=n.t==='hid'?(()=>{const c=g.conns.find(c=>c.o===n.id);const q=c&&nodes.get(c.i);return q?q.pos.clone():new THREE.Vector3(...p)})():new THREE.Vector3(...p);
+    o={m,lab,pos:start,tgt:new THREE.Vector3(...p),s:n.t==='hid'?0.01:1};nodes.set(n.id,o)}
+   o.tgt.set(...p)}
+  for(const [id,o] of nodes)if(!seen.has(id)){S.root.remove(o.m);S.root.remove(o.lab.sprite);nodes.delete(id)}
+  const se=new Set();
+  for(const c of g.conns){se.add(c.inn);let e=edges.get(c.inn);if(!e){const m=new THREE.Mesh(geoC,mat('--leaf',1));const lab=makeLabel('#'+c.inn,'--muted',0.9);S.root.add(m);S.root.add(lab.sprite);e={m,lab,grow:0};edges.set(c.inn,e)}
+   e.c=c;const v=!c.en?'--muted':c.w>=0?'--leaf':'--amber';e.m.material.userData.v=v;e.m.material.color.set(css(v));if(e.m.material.transparent!==!c.en){e.m.material.transparent=!c.en;e.m.material.needsUpdate=true}e.m.material.opacity=c.en?1:0.28;e.rad=c.en?0.014+0.014*Math.min(Math.abs(c.w),2.5):0.01;
+   e.lab.varName=c.inn===newest?'--accent':'--muted';e.lab.draw()}
+  for(const [k,e] of edges)if(!se.has(k)){S.root.remove(e.m);S.root.remove(e.lab.sprite);edges.delete(k)}}
+ function frame(dt){const k=1-Math.exp(-dt*5);
+  for(const o of nodes.values()){o.pos.lerp(o.tgt,k);o.s+=(1-o.s)*k;o.m.position.copy(o.pos);o.m.scale.setScalar(0.11*o.s);o.lab.sprite.position.set(o.pos.x,o.pos.y+0.22,o.pos.z)}
+  for(const e of edges.values()){const a=nodes.get(e.c.i),b=nodes.get(e.c.o);if(!a||!b)continue;e.grow+=(1-e.grow)*k;tmp.subVectors(b.pos,a.pos);const len=tmp.length()*e.grow;
+   e.m.position.copy(a.pos).addScaledVector(tmp,e.grow/2);e.m.scale.set(e.rad,Math.max(len,1e-3),e.rad);if(len>1e-4)e.m.quaternion.setFromUnitVectors(up,tmp.clone().normalize());
+   e.lab.sprite.position.copy(a.pos).addScaledVector(tmp,0.55*e.grow);e.lab.sprite.position.y+=0.1}}
+ return{set,frame,mark(i){newest=i}}}
+
+/* ---------- hero ---------- */
+(function(){const S=Scene3($('#heroScene'));const hud=$('#heroHud'),btn=$('#heroPlay');let reg,g,view,t=0,steps=0,play=!RM;
+ function reset(){reg=new Registry();g=minimal(reg);steps=0;if(view){view.mark(-1);view.set(g)}hud.textContent='minimal genome: 3 genes'}
+ reset();if(S){view=NetView(S);view.set(g);S.frame=dt=>{view.frame(dt);if(!play)return;t+=dt;if(t>1.7){t=0;step()}}}
+ function step(){if(g.nodes.length>=11||steps>16){reset();return}const r=R()<0.45?addNode(g,reg):addConn(g,reg);const m=r||addNode(g,reg);steps++;if(!m)return;
+  const inn=m.kind==='node'?m.b.inn:m.c.inn;view.mark(inn);view.set(g);hud.textContent=(m.kind==='node'?'add node '+m.id+' (split #'+m.split.inn+')':'add connection '+m.c.i+'→'+m.c.o+' #'+m.c.inn)+' · '+g.conns.length+' genes'}
+ const sync=()=>{btn.textContent=play?'Pause growth':'Play growth';if(S)S.auto=play};sync();
+ btn.onclick=()=>{play=!play;sync()};$('#heroReset').onclick=()=>{reset();if(view)view.set(g)}})();
+
+/* ---------- taxonomy ---------- */
+(function(){const info={fd:'Fixed topology, direct: the genome is the weight vector, in a fixed order. Early GA work (Montana & Davis 1989) and the §3.2 walker. Simple, standard operators.',
+ fi:'Fixed topology, indirect: a compact generator produces many weights. Scales to big, regular networks. Ch. 4.',
+ td:'TWEANN, direct: genes for each node and connection. NEAT, Fullmer & Miikkulainen marker strings (junk DNA switching on and off), Markov brains. Precise, but genome grows with the network.',
+ ti:'TWEANN, indirect / implicit: Cartesian genetic programming graphs, analog genetic encoding (AGE), GENE, inspired by gene regulatory networks.'};
+ document.querySelectorAll('#taxGrid .cell').forEach(b=>b.onclick=()=>{document.querySelectorAll('#taxGrid .cell').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');$('#taxInfo').textContent=info[b.dataset.k]});
+ let n=16,k=2,bits=null;const dc=$('#matDirect'),ic=$('#matIndirect');
+ const rule=(i,j)=>i!==j&&Math.abs(i-j)<=k;
+ function initBits(){bits=[];for(let i=0;i<n;i++){bits.push([]);for(let j=0;j<n;j++)bits[i].push(rule(i,j))}}
+ function draw(cv,f){const s=Math.min(cv.clientWidth||200,240);cv.style.height=s+'px';const {c,w}=fit(cv);c.clearRect(0,0,w,w);const cell=w/n;
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){const v=f(i,j);c.fillStyle=v===2?css('--accent'):v?css('--leaf'):css('--line');c.fillRect(j*cell+0.5,i*cell+0.5,cell-1,cell-1)}}
+ let flip=null;
+ function render(){draw(dc,(i,j)=>flip&&flip[0]===i&&flip[1]===j?2:bits[i][j]?1:0);draw(ic,(i,j)=>rule(i,j)?1:0);$('#lenDirect').textContent=(n*n).toLocaleString();$('#lenIndirect').textContent='1'}
+ bindRange('taxN',v=>v,v=>{n=v;initBits();flip=null;render()});bindRange('taxK',v=>v,v=>{k=v;initBits();flip=null;render()});
+ n=+$('#taxN').value;k=+$('#taxK').value;initBits();
+ $('#taxMut').onclick=()=>{const i=Math.floor(R()*n),j=Math.floor(R()*n);bits[i][j]=!bits[i][j];flip=[i,j];k=clamp(k+(R()<0.5?-1:1),1,8);$('#taxK').value=k;$('#taxKV').textContent=k;
+  $('#taxLog').textContent='Direct: flipped one connection ('+i+'→'+j+'). Indirect: k is now '+k+', and the entire band pattern changed at once.';render()};
+ new ResizeObserver(render).observe(dc);onTheme(render)})();
+
+/* ---------- walker (§3.2) ---------- */
+(function(){const L=60,T=260,H=5,NW=3*H+H+H*2+2;
+ function terrain(seed){const r=mulberry(seed);const d=r();const p=d<0.35?0:0.08+0.3*d;const h=new Float32Array(L);for(let i=3;i<L;i++)if(r()<p)h[i]=0.25+0.75*r();return h}
+ function act(w,o){const hid=new Array(H);for(let j=0;j<H;j++){let s=w[15+j];for(let q=0;q<3;q++)s+=w[j*3+q]*o[q];hid[j]=Math.tanh(s)}const out=[0,0];for(let m=0;m<2;m++){let s=w[30+m];for(let j=0;j<H;j++)s+=w[20+m*5+j]*hid[j];out[m]=1/(1+Math.exp(-s))}return[out[0],out[1]*1.3]}
+ function obs(h,x){const c=Math.floor(x);for(let q=1;q<=5;q++)if(c+q<L&&h[c+q]>0)return[h[c+q],(q-(x-c))/5,1];return[0,1,1]}
+ function stepW(w,h,st,ce){const [sp,lift]=act(w,obs(h,st.x));const nx=st.x+sp*0.5;st.sp=sp;st.lift=lift;
+  for(let q=Math.floor(st.x)+1;q<=Math.floor(nx)&&q<L;q++)if(h[q]>0&&lift<h[q]+0.25*sp){st.tot-=100;st.done=true;st.fell=true;return}
+  st.tot+=5*(Math.min(nx,L)-st.x)-ce*0.1*(sp*sp+lift*lift)+0.02;st.x=nx;st.t++;if(st.x>=L||st.t>=T)st.done=true}
+ function rollout(w,h,ce){const st={x:0,t:0,tot:0,done:false};while(!st.done)stepW(w,h,st,ce);return st.tot}
+ const testSeeds=Array.from({length:100},(_,i)=>900000+i*7);
+ let K,ce,pop,gen,seedC,tr,te,champ,episodes,running=!RM,replay=null,repSeed=0;
+ function reset(){K=+$('#wK').value;ce=+$('#wCe').value;pop=Array.from({length:40},()=>Float32Array.from({length:NW},()=>gauss()*0.5));gen=0;seedC=1;tr=[];te=[];champ=pop[0];episodes=0;replay=null}
+ function generation(){const f=pop.map(w=>{let s=0;for(let k=0;k<K;k++){seedC=(seedC*16807)%2147483647;s+=rollout(w,terrain(seedC),ce)}return s/K});episodes+=40*K;
+  const idx=[...f.keys()].sort((a,b)=>f[b]-f[a]);champ=pop[idx[0]];let ts=0;for(const s of testSeeds)ts+=rollout(champ,terrain(s),ce);tr.push(f[idx[0]]);te.push(ts/100);
+  const par=idx.slice(0,8).map(i=>pop[i]);pop=[champ];while(pop.length<40){const p=par[Math.floor(R()*8)];pop.push(p.map(v=>v+0.15*gauss()))}gen++}
+ const cv=$('#walkCanvas'),pc=$('#walkPlot'),stat=$('#wStat');
+ function drawSim(){const {c,w,h}=fit(cv);c.clearRect(0,0,w,h);if(!replay)return;const cell=34,gy=h-34,camx=clamp(replay.st.x*cell-w*0.35,0,L*cell-w+40);
+  c.strokeStyle=css('--muted');c.lineWidth=2;c.beginPath();c.moveTo(0,gy);c.lineTo(w,gy);c.stroke();
+  for(let i=0;i<L;i++)if(replay.h[i]>0){const x=i*cell-camx;if(x<-cell||x>w)continue;const hh=replay.h[i]*60;c.fillStyle=css('--amber');c.fillRect(x+cell*0.3,gy-hh,cell*0.4,hh)}
+  c.fillStyle=css('--leaf');c.fillRect(L*cell-camx,gy-80,4,80);
+  const ax=replay.st.x*cell-camx,lift=(replay.st.lift||0)*60,ph=replay.st.t*0.9,bodyY=gy-46;
+  c.strokeStyle=css('--ink');c.lineWidth=3;
+  for(const s of [0,Math.PI]){const fx=ax+Math.sin(ph+s)*12,fy=gy-Math.max(0,Math.cos(ph+s))*lift*0.5;c.beginPath();c.moveTo(ax,bodyY+8);c.lineTo((ax+fx)/2+5,(bodyY+fy)/2);c.lineTo(fx,fy);c.stroke()}
+  c.fillStyle=replay.st.fell?css('--accent'):css('--ink');c.fillRect(ax-14,bodyY-8,28,16);
+  c.font='12px "JetBrains Mono",monospace';c.fillStyle=css('--muted');c.fillText('champion on test terrain '+(repSeed+1)+'/100 · reward '+replay.st.tot.toFixed(0)+(replay.st.fell?' · FELL':''),8,16)}
+ function draw(){plot(pc,[{data:tr,color:css('--accent')},{data:te,color:css('--leaf')}],{ymin:-120,ymax:320,hline:270,xmax:60});
+  stat.innerHTML='gen <b>'+gen+'</b> · episodes used <b>'+episodes.toLocaleString()+'</b> · last train <b>'+(tr.length?tr[tr.length-1].toFixed(0):'–')+'</b> · test avg <b>'+(te.length?te[te.length-1].toFixed(0):'–')+'</b>'+(gen>=60?' · done':'')}
+ const Lp=loop(cv,dt=>{if(running&&gen<60){generation();draw()}
+  if(!replay||replay.st.done){if(replay&&replay.wait>0){replay.wait-=dt}else{repSeed=(repSeed+1)%100;replay={h:terrain(testSeeds[repSeed]),st:{x:0,t:0,tot:0,done:false},w:champ,wait:0.8}}}
+  else{replay.acc=(replay.acc||0)+dt*60;while(replay.acc>=1&&!replay.st.done){stepW(replay.w,replay.h,replay.st,ce);replay.acc--}}drawSim()});
+ const sync=()=>$('#wRun').textContent=running?'Pause':'Run';
+ $('#wRun').onclick=()=>{running=!running;sync()};$('#wReset').onclick=()=>{reset();draw()};
+ bindRange('wK',v=>v,()=>{reset();draw()});bindRange('wCe',v=>v.toFixed(1),()=>{reset();draw()});
+ reset();sync();draw();onTheme(()=>{draw();drawSim()});new ResizeObserver(()=>{draw();drawSim()}).observe(pc)})();
+
+/* ---------- genome builder ---------- */
+const builder={reg:figReg,g:null,listeners:[]};
+(function(){const S=Scene3($('#genomeScene'));let view=null;builder.g=minimal(figReg,mulberry(3));let newest=-1;
+ if(S){view=NetView(S);S.frame=dt=>view.frame(dt)}
+ function render(){if(view){view.mark(newest);view.set(builder.g)}const g=builder.g;
+  $('#gNodes').innerHTML=g.nodes.map(n=>'<span>node '+n.id+' · '+({in:'input',bias:'bias',out:'output',hid:'hidden'})[n.t]+'</span>').join('');
+  $('#gGenes').innerHTML='<div class="grow"><div class="rl">conn genes</div>'+[...g.conns].sort((a,b)=>a.inn-b.inn).map(c=>geneHTML(c,c.inn===newest?'new':'')).join('')+'</div>';
+  $('#genomeHud').textContent=g.nodes.length+' nodes · '+g.conns.length+' genes · next innovation #'+figReg.nextInn;builder.listeners.forEach(f=>f())}
+ const log=$('#gLog');
+ $('#gAddConn').onclick=()=>{const m=addConn(builder.g,figReg);if(!m){log.textContent='No legal new connection (feed-forward only here). Try add node.';return}newest=m.c.inn;
+  log.textContent='Add connection '+m.c.i+'→'+m.c.o+', weight '+m.c.w+': gene #'+m.c.inn+(m.reused?' (reused: this pair already has a number in history)':' (new innovation)');render()};
+ $('#gAddNode').onclick=()=>{const m=addNode(builder.g,figReg);if(!m){log.textContent='No connection left to split.';return}newest=m.b.inn;
+  log.textContent='Add node '+m.id+': disabled #'+m.split.inn+' ('+m.split.i+'→'+m.split.o+'), added #'+m.a.inn+' ('+m.a.i+'→'+m.id+', w=1) and #'+m.b.inn+' ('+m.id+'→'+m.b.o+', w='+m.b.w+')'+(m.reused?'. Numbers reused from history.':'.');render()};
+ $('#gWeights').onclick=()=>{perturb(builder.g,0.5);newest=-1;log.textContent='Weight mutation: each weight nudged with 80% probability. Structure and numbers unchanged.';render()};
+ $('#gReset').onclick=()=>{builder.g=minimal(figReg);newest=-1;log.textContent='Fresh minimal genome. The global history is kept, so repeating a mutation reuses its number.';render()};
+ const sp=$('#gSpin');sp.onclick=()=>{if(S){S.auto=!S.auto;sp.textContent=S.auto?'Spin off':'Spin on'}};if(S)sp.textContent=S.auto?'Spin off':'Spin on';
+ render()})();
+function geneHTML(c,cls){return '<div class="gene '+(cls||'')+(c.en?'':' off')+'"><b>'+c.inn+'</b><span>'+c.i+'→'+c.o+'</span><span>'+(c.en?fw(c.w):'DIS')+'</span></div>'}
+
+/* ---------- crossover ---------- */
+(function(){let child=null;
+ const get=v=>v==='p1'?P1:v==='p2'?P2:builder.g;
+ function mate(A,B,fit){const ma=new Map(A.conns.map(c=>[c.inn,c])),mb=new Map(B.conns.map(c=>[c.inn,c]));const xa=Math.max(...ma.keys()),xb=Math.max(...mb.keys());
+  const inns=[...new Set([...ma.keys(),...mb.keys()])].sort((a,b)=>a-b);const rows=[];const conns=[];
+  for(const k of inns){const a=ma.get(k),b=mb.get(k);let kind,pick=null;
+   if(a&&b){kind='match';const src=R()<0.5?a:b;pick={...src};if(!a.en||!b.en)pick.en=R()>=0.75}
+   else{kind=(a?k>xb:k>xa)?'excess':'disjoint';const who=a?'A':'B';if(fit==='eq'||fit===who)pick={...(a||b)}}
+   if(pick)conns.push(pick);rows.push({k,a,b,kind,pick})}
+  const ids=new Set([1,2,3,4]);conns.forEach(c=>{ids.add(c.i);ids.add(c.o)});
+  return{rows,g:{nodes:[...ids].sort((a,b)=>a-b).map(id=>({id,t:id<=2?'in':id===3?'bias':id===4?'out':'hid'})),conns}}}
+ function cell(c,kind){return c?geneHTML(c,kind):'<div class="gene empty"></div>'}
+ function run(){const A=get($('#xA').value),B=get($('#xB').value),fit=$('#xFit').value;const res=mate(A,B,fit);child=res.g;
+  $('#xGenes').innerHTML=['A','B','offspring'].map((lab,ri)=>'<div class="grow"><div class="rl">'+(ri<2?'parent '+lab:lab)+'</div>'+res.rows.map(r=>cell(ri===0?r.a:ri===1?r.b:r.pick,r.kind)).join('')+'</div>').join('');
+  drawNet(child);const d=compat(A,B,1,1,0.4);
+  $('#xStat').innerHTML='Aligned <b>'+res.rows.length+'</b> innovation numbers<br>matching <b>'+res.rows.filter(r=>r.kind==='match').length+'</b> · disjoint <b>'+d.D+'</b> · excess <b>'+d.E+'</b><br>W̄ (mean |Δw| of matching) <b>'+d.W.toFixed(2)+'</b>, N <b>'+d.N+'</b><br>δ (c1=c2=1, c3=0.4) = '+d.t1.toFixed(2)+' + '+d.t2.toFixed(2)+' + '+d.t3.toFixed(2)+' = <b>'+d.d.toFixed(2)+'</b><br>offspring: <b>'+child.conns.length+'</b> genes, '+child.conns.filter(c=>c.en).length+' enabled'}
+ function drawNet(g){const svg=$('#xNet');const {P}=layout(g);const X=x=>20+(x+1.8)/3.6*280,Y=y=>90+y*55;let s='';
+  for(const c of g.conns){const a=P.get(c.i),b=P.get(c.o);if(!a||!b)continue;const col=!c.en?'var(--muted)':c.w>=0?'var(--leaf)':'var(--amber)';
+   s+='<line x1="'+X(a[0])+'" y1="'+Y(a[1])+'" x2="'+X(b[0])+'" y2="'+Y(b[1])+'" stroke="'+col+'" stroke-width="'+(c.en?1.2+Math.min(Math.abs(c.w),2):1)+'"'+(c.en?'':' stroke-dasharray="4 3" opacity=".6"')+'/>'}
+  for(const n of g.nodes){const p=P.get(n.id);const col=n.t==='in'?'var(--muted)':n.t==='bias'?'var(--amber)':n.t==='out'?'var(--ink)':'var(--accent)';
+   s+='<circle cx="'+X(p[0])+'" cy="'+Y(p[1])+'" r="11" fill="var(--panel)" stroke="'+col+'" stroke-width="2"/><text x="'+X(p[0])+'" y="'+(Y(p[1])+4)+'" text-anchor="middle" font-size="11" font-family="JetBrains Mono,monospace" fill="var(--ink)">'+n.id+'</text>'}
+  svg.innerHTML='<text x="4" y="14" font-size="11" font-family="JetBrains Mono,monospace" fill="var(--muted)">offspring phenotype</text>'+s}
+ ['xA','xB','xFit'].forEach(id=>$('#'+id).addEventListener('change',run));$('#xMate').onclick=run;
+ builder.listeners.push(()=>{if($('#xA').value==='bld'||$('#xB').value==='bld')run()});run()})();
+
+/* ---------- speciation ---------- */
+(function(){const S=Scene3($('#speciesScene'));const NP=120;let pop=[],fit=[],coords=null,species=[],sel=0,popSeed=11;
+ function makePop(seed){const r=mulberry(seed);const reg=new Registry();const base=minimal(reg,r);const out=[];
+  for(let f=0;f<6;f++){const fd=clone(base);for(let s=0;s<f+(f>2?1:0);s++){(r()<0.5?addNode(fd,reg,r):addConn(fd,reg,r))||addNode(fd,reg,r)}fd.conns.forEach(c=>c.w=+(gauss(r)*1.5).toFixed(2));
+   for(let m=0;m<20;m++){const c=clone(fd);if(r()<0.35)(r()<0.5?addConn(c,reg,r):addNode(c,reg,r));perturb(c,0.35,r);out.push(c)}}
+  for(let i=out.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[out[i],out[j]]=[out[j],out[i]]}return out}
+ const P=()=>({dt:+$('#sDt').value,c1:+$('#sC1').value,c2:+$('#sC2').value,c3:+$('#sC3').value});
+ function speciate(){const p=P();species=[];const of=new Array(NP);
+  pop.forEach((g,i)=>{for(const s of species){if(compat(g,pop[s.rep],p.c1,p.c2,p.c3).d<p.dt){s.m.push(i);of[i]=s;return}}const s={rep:i,m:[i],id:species.length};species.push(s);of[i]=s});
+  species.forEach(s=>s.of=of);return of}
+ function mds(){const p=P();const n=NP,D2=new Float64Array(n*n);for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const d=compat(pop[i],pop[j],p.c1,p.c2,p.c3).d;D2[i*n+j]=D2[j*n+i]=d*d}
+  const rm=new Float64Array(n);let tm=0;for(let i=0;i<n;i++){let s=0;for(let j=0;j<n;j++)s+=D2[i*n+j];rm[i]=s/n;tm+=s}tm/=n*n;
+  const B=new Float64Array(n*n);for(let i=0;i<n;i++)for(let j=0;j<n;j++)B[i*n+j]=-0.5*(D2[i*n+j]-rm[i]-rm[j]+tm);
+  const vecs=[];const rr=mulberry(5);for(let k=0;k<3;k++){let v=Float64Array.from({length:n},()=>rr()-0.5),lam=0;
+   for(let it=0;it<80;it++){const u=new Float64Array(n);for(let i=0;i<n;i++){let s=0;for(let j=0;j<n;j++)s+=B[i*n+j]*v[j];u[i]=s}
+    for(const pv of vecs){let dd=0;for(let i=0;i<n;i++)dd+=u[i]*pv.v[i];for(let i=0;i<n;i++)u[i]-=dd*pv.v[i]}
+    let nn=0;for(let i=0;i<n;i++)nn+=u[i]*u[i];nn=Math.sqrt(nn)||1;lam=nn;for(let i=0;i<n;i++)v[i]=u[i]/nn}vecs.push({v,lam})}
+  const out=[];for(let i=0;i<n;i++)out.push(vecs.map(e=>e.v[i]*Math.sqrt(Math.max(e.lam,0))));
+  for(let k=0;k<3;k++){if(coords){let dd=0;for(let i=0;i<n;i++)dd+=out[i][k]*coords[i][k];if(dd<0)out.forEach(q=>q[k]=-q[k])}}
+  let mx=1e-6;out.forEach(q=>mx=Math.max(mx,Math.hypot(...q)));out.forEach(q=>{q[0]*=2.2/mx;q[1]*=2.2/mx;q[2]*=2.2/mx});coords=out}
+ let pts=[],lines=null,lineGeo=null,raycaster=null;
+ if(S){const geo=new THREE.SphereGeometry(1,14,10);for(let i=0;i<NP;i++){const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:0x888888}));m.userData.i=i;m.userData.cur=new THREE.Vector3();S.root.add(m);pts.push(m)}
+  lineGeo=new THREE.BufferGeometry();lineGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(NP*6),3));lineGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(NP*6),3));
+  lines=new THREE.LineSegments(lineGeo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.5}));S.root.add(lines);raycaster=new THREE.Raycaster();
+  S.frame=dt=>{const k=1-Math.exp(-dt*4);const pos=lineGeo.attributes.position.array;
+   pts.forEach((m,i)=>{const t=coords[i];m.userData.cur.lerp(new THREE.Vector3(t[0],t[1],t[2]),k);m.position.copy(m.userData.cur);const s=species.find(q=>q.m.includes(i));const rep=s&&s.rep===i;m.scale.setScalar(i===sel?0.16:rep?0.12:0.065)});
+   pts.forEach((m,i)=>{const s=ofMap[i];const r=pts[s.rep].position;pos.set([m.position.x,m.position.y,m.position.z,r.x,r.y,r.z],i*6)});lineGeo.attributes.position.needsUpdate=true};
+  S.click=(x,y)=>{raycaster.setFromCamera({x,y},S.cam);const h=raycaster.intersectObjects(pts);if(h.length){sel=h[0].object.userData.i;pick()}}}
+ let ofMap=[];
+ function color(){if(!S)return;const col=lineGeo.attributes.color.array;const c=new THREE.Color();pts.forEach((m,i)=>{const s=ofMap[i];c.set(spColor(s.id));m.material.color.copy(c);col.set([c.r,c.g,c.b,c.r,c.g,c.b],i*6)});lineGeo.attributes.color.needsUpdate=true}
+ function pick(){const p=P();const s=ofMap[sel];const rep=pop[s.rep];const d=compat(pop[sel],rep,p.c1,p.c2,p.c3);const g=pop[sel];
+  $('#sPick').innerHTML='Selected genome <b>'+sel+'</b> ('+g.conns.length+' genes, '+g.nodes.filter(n=>n.t==='hid').length+' hidden, XOR fitness '+fit[sel].toFixed(2)+') vs representative of species <b>S'+(s.id+1)+'</b>: E='+d.E+', D='+d.D+', W̄='+d.W.toFixed(2)+', N='+d.N+' → δ = <span class="t1">'+d.t1.toFixed(2)+'</span> + <span class="t2">'+d.t2.toFixed(2)+'</span> + <span class="t3">'+d.t3.toFixed(2)+'</span> = <b>'+d.d.toFixed(2)+'</b>'+(s.rep===sel?' (it <em>is</em> the representative)':' < δt '+p.dt.toFixed(2))}
+ function share(){const tot=fit.reduce((a,b)=>a+b,0);const means=species.map(s=>s.m.reduce((a,i)=>a+fit[i],0)/s.m.length);const tm=means.reduce((a,b)=>a+b,0);
+  const rows=species.map((s,k)=>({s,raw:NP*s.m.reduce((a,i)=>a+fit[i],0)/tot,sh:NP*means[k]/tm})).sort((a,b)=>b.s.m.length-a.s.m.length);
+  const show=rows.slice(0,8);const mx=Math.max(...show.map(r=>Math.max(r.raw,r.sh)),1);
+  $('#shareBars').innerHTML=show.map(r=>'<div class="row"><span style="color:'+spColor(r.s.id)+'">S'+(r.s.id+1)+' n='+r.s.m.length+'</span><div class="bar" style="--k:var(--muted);width:'+(100*r.raw/mx)+'%"></div><span>'+r.raw.toFixed(1)+'</span></div><div class="row"><span></span><div class="bar" style="--k:var(--accent);width:'+(100*r.sh/mx)+'%"></div><span>'+r.sh.toFixed(1)+'</span></div>').join('')+(rows.length>8?'<p class="stat">+'+(rows.length-8)+' smaller species not shown</p>':'');
+  $('#sChips').innerHTML=rows.map(r=>'<span style="--k:'+spColor(r.s.id)+'">S'+(r.s.id+1)+' · '+r.s.m.length+' · f̄ '+(r.s.m.reduce((a,i)=>a+fit[i],0)/r.s.m.length).toFixed(1)+'</span>').join('');
+  $('#speciesHud').textContent=species.length+' species · δt '+P().dt.toFixed(2)}
+ function regroup(){ofMap=speciate();color();pick();share()}
+ function full(){mds();regroup()}
+ function newPop(){pop=makePop(popSeed);popSeed+=7;fit=pop.map(xorFit);coords=null;mds();if(S)pts.forEach((m,i)=>m.userData.cur.set(coords[i][0],coords[i][1],coords[i][2]));regroup()}
+ bindRange('sDt',v=>v.toFixed(2),regroup);['sC1','sC2','sC3'].forEach(id=>bindRange(id,v=>v.toFixed(1),full));
+ $('#sNew').onclick=newPop;const sp=$('#sSpin');sp.onclick=()=>{if(S){S.auto=!S.auto;sp.textContent=S.auto?'Spin off':'Spin on'}};if(S)sp.textContent=S.auto?'Spin off':'Spin on';
+ newPop();onTheme(()=>{color();share()})})();
+
+/* ---------- double pole ---------- */
+(function(){const g=-9.8,M=1,mup=0.000002,muc=0.0005,LIM=36*Math.PI/180,MAXT=1000;
+ let ratio,hide,sigma,pop,gen,evals,best,champ,hist,running=!RM,solved=false,rep=null;
+ function deriv(s,F,l1,l2){const m1=0.1,m2=0.1*l2/l1;const [,xd,t1,t1d,t2,t2d]=s;
+  const ft=(m,l,t,td)=>m*l*td*td*Math.sin(t)+0.75*m*Math.cos(t)*(mup*td/(m*l)+g*Math.sin(t));const mt=(m,t)=>m*(1-0.75*Math.cos(t)**2);
+  const xdd=(F-muc*Math.sign(xd)+ft(m1,l1,t1,t1d)+ft(m2,l2,t2,t2d))/(M+mt(m1,t1)+mt(m2,t2));const tdd=(l,m,t,td)=>-0.75*(xdd*Math.cos(t)+g*Math.sin(t)+mup*td/(m*l))/l;
+  return[xd,xdd,t1d,tdd(l1,m1,t1,t1d),t2d,tdd(l2,m2,t2,t2d)]}
+ function rk4(s,F,l1,l2,dt){const a=deriv(s,F,l1,l2),b=deriv(s.map((v,i)=>v+dt/2*a[i]),F,l1,l2),c=deriv(s.map((v,i)=>v+dt/2*b[i]),F,l1,l2),d=deriv(s.map((v,i)=>v+dt*c[i]),F,l1,l2);return s.map((v,i)=>v+dt/6*(a[i]+2*b[i]+2*c[i]+d[i]))}
+ const init=()=>[0,0,4.5*Math.PI/180,0,0,0];
+ function force(w,s){const inp=[s[0]/2.4,hide?0:s[1]/1.5,s[2]/0.6,hide?0:s[3]/2,s[4]/0.6,hide?0:s[5]/2];let a=w[6];for(let i=0;i<6;i++)a+=w[i]*inp[i];return 10*Math.tanh(a)}
+ const fail=s=>Math.abs(s[0])>2.4||Math.abs(s[2])>LIM||Math.abs(s[4])>LIM;
+ function ctrlStep(w,s){const F=force(w,s);s=rk4(s,F,0.5,0.5*ratio,0.01);return rk4(s,F,0.5,0.5*ratio,0.01)}
+ function evalW(w){let s=init();for(let t=0;t<MAXT;t++){s=ctrlStep(w,s);if(fail(s))return t}return MAXT}
+ function reset(){ratio=+$('#pRatio').value;hide=$('#pHide').checked;pop=Array.from({length:40},()=>Array.from({length:7},()=>gauss()));gen=0;evals=0;best=0;champ=pop[0];hist=[];solved=false;rep=null}
+ function generation(){const f=pop.map(evalW);evals+=40;const idx=[...f.keys()].sort((a,b)=>f[b]-f[a]);if(f[idx[0]]>best||gen===0){best=f[idx[0]];champ=pop[idx[0]].slice();rep=null}hist.push(f[idx[0]]);gen++;
+  if(best>=MAXT){solved=true;return}const par=idx.slice(0,8).map(i=>pop[i]);pop=[pop[idx[0]]];while(pop.length<40){const p=par[Math.floor(R()*8)];pop.push(p.map(v=>v+sigma*gauss()))}}
+ const cv=$('#poleCanvas'),pc=$('#polePlot'),stat=$('#pStat');
+ function drawSim(){const {c,w,h}=fit(cv);c.clearRect(0,0,w,h);const sc=(w-30)/4.8,cx=w/2,gy=h-30;c.strokeStyle=css('--muted');c.lineWidth=2;c.beginPath();c.moveTo(cx-2.4*sc,gy);c.lineTo(cx+2.4*sc,gy);c.stroke();
+  [-2.4,2.4].forEach(b=>{c.beginPath();c.moveTo(cx+b*sc,gy-10);c.lineTo(cx+b*sc,gy+6);c.stroke()});if(!rep)return;const s=rep.s;const x=cx+s[0]*sc;
+  c.fillStyle=css('--ink');c.fillRect(x-22,gy-16,44,14);const pole=(th,len,col,wd)=>{c.strokeStyle=col;c.lineWidth=wd;c.beginPath();c.moveTo(x,gy-16);c.lineTo(x+Math.sin(th)*len,gy-16-Math.cos(th)*len);c.stroke()};
+  const lp=Math.min(h-60,2*sc*0.5*1.0);pole(s[2],lp,css('--accent'),4);pole(s[4],lp*ratio,css('--leaf'),5);
+  c.font='12px "JetBrains Mono",monospace';c.fillStyle=css('--muted');c.fillText('champion replay · step '+rep.t+(rep.dead?' · failed':rep.t>=MAXT?' · balanced 20 s':''),8,16);
+  c.fillText('force '+(rep.F||0).toFixed(1)+' N',8,32)}
+ function draw(){plot(pc,[{data:hist,color:css('--accent')}],{ymin:0,ymax:MAXT,hline:MAXT,xmax:100,fy:v=>v.toFixed(0)});
+  stat.innerHTML='gen <b>'+gen+'</b> · evaluations <b>'+evals.toLocaleString()+'</b> · best steps <b>'+best+'</b>/'+MAXT+(solved?' · <b>solved</b>':gen>=300?' · gave up (300 gens)':'')+(hide?' · velocities hidden':'')}
+ loop(cv,dt=>{if(running&&!solved&&gen<300){generation();draw()}
+  if(!rep){rep={s:init(),t:0,acc:0,dead:false,wait:1}}
+  if(rep.dead||rep.t>=MAXT){rep.wait-=dt;if(rep.wait<=0)rep=null}else{rep.acc+=dt*50;while(rep.acc>=1&&!rep.dead&&rep.t<MAXT){rep.F=force(champ,rep.s);rep.s=ctrlStep(champ,rep.s);rep.t++;rep.acc--;if(fail(rep.s))rep.dead=true}}if(rep)drawSim()});
+ const sync=()=>$('#pRun').textContent=running?'Pause':'Run';$('#pRun').onclick=()=>{running=!running;sync()};$('#pReset').onclick=()=>{reset();draw()};
+ bindRange('pSigma',v=>v.toFixed(2),v=>sigma=v);sigma=+$('#pSigma').value;bindRange('pRatio',v=>v.toFixed(2),()=>{reset();draw()});$('#pHide').addEventListener('change',()=>{reset();draw()});
+ reset();sync();draw();onTheme(()=>{draw();drawSim()});new ResizeObserver(()=>draw()).observe(pc)})();
+
+/* ---------- ablation ---------- */
+(function(){const D=[['No-growth (fixed topology)',30239,80],['Initial random topology',23033,5],['Non-speciated',25600,25],['Non-mating (no crossover)',5557,0],['Full NEAT',3600,0]];
+ function r(){const m=$('#abMetric').value==='e'?1:2;const mx=m===1?31000:100;$('#abBars').innerHTML=D.map(d=>'<div class="row" style="grid-template-columns:minmax(0,1.3fr) 2fr 64px"><span style="font-family:Source Serif 4,serif;font-size:14px">'+d[0]+'</span><div class="bar" style="--k:'+(d[0]==='Full NEAT'?'var(--leaf)':'var(--accent)')+';width:'+(100*d[m]/mx)+'%"></div><span>'+(m===1?d[1].toLocaleString():d[2]+'%')+'</span></div>').join('')}
+ $('#abMetric').addEventListener('change',r);r()})();
+
+/* ---------- deep GA ---------- */
+(function(){const DS=[0,10,100,1000,10000,100000];const NT=1<<20,noise=new Float32Array(NT);{const r=mulberry(99);for(let i=0;i<NT;i++)noise[i]=gauss(r)}
+ const P=24,TR=6;let D,sigma,target,pop,fits,gen,hist,running=!RM,evals;
+ function fitness(th){let s=0;for(let i=0;i<D;i++){const e=th[i]-target[i];s+=e*e}return -s/D}
+ function reset(){D=DS[+$('#dD').value];const r=mulberry(D);target=new Float32Array(D);for(let i=0;i<D;i++)target[i]=gauss(r);pop=Array.from({length:P},()=>new Float32Array(D));fits=pop.map(fitness);gen=0;hist=[];evals=P}
+ function generation(){const idx=[...fits.keys()].sort((a,b)=>fits[b]-fits[a]);const par=idx.slice(0,TR).map(i=>pop[i]);const elite=pop[idx[0]],ef=fits[idx[0]];const np=[elite],nf=[ef];
+  for(let k=1;k<P;k++){const p=par[Math.floor(R()*TR)],c=new Float32Array(D),off=Math.floor(R()*NT);for(let i=0;i<D;i++)c[i]=p[i]+sigma*noise[(off+i)&(NT-1)];np.push(c);nf.push(fitness(c))}
+  pop=np;fits=nf;evals+=P-1;gen++;hist.push(Math.log10(-Math.max(...fits)))}
+ const pc=$('#deepPlot'),stat=$('#dStat');
+ function draw(){plot(pc,[{data:hist,color:css('--accent')}],{ymin:-4,ymax:0.5,xmax:300,fy:v=>'1e'+v.toFixed(0),xl:'generation'});
+  stat.innerHTML='D = <b>'+D.toLocaleString()+'</b> weights · gen <b>'+gen+'</b> · forward passes <b>'+evals.toLocaleString()+'</b> · backward passes <b>0</b> · MSE <b>'+(hist.length?Math.pow(10,hist[hist.length-1]).toExponential(2):'1.0')+'</b>'}
+ loop(pc,()=>{if(running&&gen<300){const t0=performance.now();do{generation()}while(D<=1000&&gen<300&&performance.now()-t0<8);draw()}});
+ const sync=()=>$('#dRun').textContent=running?'Pause':'Run';$('#dRun').onclick=()=>{running=!running;sync()};$('#dReset').onclick=()=>{reset();draw()};
+ bindRange('dD',v=>DS[v].toLocaleString(),()=>{reset();draw()});bindRange('dSig',v=>Math.pow(10,v).toFixed(3),v=>sigma=Math.pow(10,v));sigma=Math.pow(10,+$('#dSig').value);
+ reset();sync();draw();onTheme(draw);new ResizeObserver(draw).observe(pc)})();
+
+/* ---------- Atari table ---------- */
+(function(){const M=['DQN','ES','A3C','RS','GA','GA 6B'];const T=[['amidar',978,112,264,143,263,377],['assault',4280,1674,5475,649,714,814],['asterix',4359,1440,22140,1197,1850,2255],['asteroids',1365,1562,4475,1307,1661,2700],['atlantis',279987,1267410,911091,26371,76273,129167],['enduro',729,95,-82,36,60,80],['frostbite',797,370,191,1164,4536,6220],['gravitar',473,805,304,431,476,764],['kangaroo',7259,11200,94,1099,3790,11254],['seaquest',5861,1390,2355,503,798,850],['skiing',-13062,-15443,-10911,-7679,-6502,-5541],['venture',163,760,23,488,969,1422],['zaxxon',5363,6380,24622,2538,6180,7864]];
+ function r(){const inc=$('#atari6b').checked;const n=inc?6:5;const wins=new Array(6).fill(0);
+  const rows=T.map(t=>{let b=1;for(let k=2;k<=n;k++)if(t[k]>t[b])b=k;wins[b-1]++;return'<tr><td>'+t[0]+'</td>'+t.slice(1,n+1).map((v,k)=>'<td'+(k+1===b?' class="win"':'')+'>'+v.toLocaleString()+'</td>').join('')+'</tr>'});
+  $('#atariT').innerHTML='<tr><th>game</th>'+M.slice(0,n).map(m=>'<th>'+m+'</th>').join('')+'</tr>'+rows.join('');
+  $('#atariWins').innerHTML='<p class="stat">games won (of 13)</p>'+M.slice(0,n).map((m,k)=>'<div class="row"><span>'+m+'</span><div class="bar" style="--k:var(--accent);width:'+(100*wins[k]/13)+'%"></div><span>'+wins[k]+'</span></div>').join('')}
+ $('#atari6b').addEventListener('change',r);r()})();
+})();
+</script>
+
+</body></html>

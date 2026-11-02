@@ -1,10 +1,10 @@
-import { d3, L, div, choice, plot, legend, COLOR } from "./_lib.js";
+import { d3, L, div, choice, plot, legend, COLOR, loadData } from "./_lib.js";
 import { fmt } from "../math.js";
 
 const LAMBDAS = ["0.0", "0.001", "0.01", "0.05"];
 
 export default async function mount(el) {
-  const data = await (await fetch(new URL("../../../data/regularization.json", import.meta.url))).json();
+  const data = await loadData("regularization");
   let lam = "0.0";
   const n = data.runs[lam].train.length, every = data.every;
 
